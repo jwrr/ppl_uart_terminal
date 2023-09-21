@@ -642,7 +642,71 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *err_msg)
             int_to_hex(x2, hexstr);
             string_append(err_msg, hexstr, 8);
             string_append(err_msg, "\r\n", 2);
+        }
+    } else if (string_in_list(&g_line_parts[0], "peek poke")) {
+        if (g_line_parts[1].len == 0) {
+            string_init(err_msg, "ERR 2.1: Missing address\r\n");
+        } else if (result_tag_addr == 0) {
+            string_init(err_msg, "ERR 2.2. Undefined address '");
+            string_append(err_msg, g_line_parts[1].txt, g_line_parts[1].len);
+            string_append(err_msg, "'\r\n", 3);
+        } else if (g_line_parts[2].len == 0) {
+            string_init(err_msg, "ERR 2.3: Missing value or variable after address\r\n");
+        } else if (string_in_list(&g_line_parts[0], "peek") && data1_is_number) {
+            string_init(err_msg, "ERR 2.4. return variable is actually a number '");
+            string_append(err_msg, g_line_parts[2].txt, g_line_parts[2].len);
+            string_append(err_msg, "'\r\n", 3);
+        } else if (string_in_list(&g_line_parts[0], "poke") && data1 == 0 && !data1_is_number) {
+            string_init(err_msg, "ERR 2.5. Undefined variable '");
+            string_append(err_msg, g_line_parts[2].txt, g_line_parts[2].len);
+            string_append(err_msg, "'\r\n", 3);
+        } else {
+            uint32_t x1 = data1_is_number ? data1 : ppl_vm->data_mem[data1].val;
+            uint64_t *addr;
+            addr = (uint64_t *)x1;
+            uint32_t x2 = data2_is_number ? data2 : ppl_vm->data_mem[data2].val;
+            if (string_in_list(&g_line_parts[0], "peek")) {
+                uint64_t val = *addr;
+                ppl_vm->data_mem[data2].val = (uint32_t)val;
+                string_init(err_msg, g_line_parts[2].txt);
+                string_append(err_msg, " (", 2);
+                char hexstr[9];
+                int_to_hex(ppl_vm->data_mem[data2].val, hexstr);
+                string_append(err_msg,hexstr, 8);
+                string_append(err_msg, ") = peek ", 8);
+                if (data1_is_number) {
+                    string_append(err_msg, "number", 6);
+                } else {
+                    string_append(err_msg, g_line_parts[1].txt, g_line_parts[1].len);
+                }
+                string_append(err_msg, " (0x", 4);
+                int_to_hex(x1, hexstr);
+                string_append(err_msg, hexstr, 8);
+                string_append(err_msg, ")\r\n", 3);
+            } else { // poke
+                string_init(err_msg,"poke ");
+                *addr = (uint64_t)x2;
 
+                if (data1_is_number) {
+                    string_append(err_msg, "addr", 4);
+                } else {
+                    string_append(err_msg, g_line_parts[1].txt, g_line_parts[1].len);
+                }
+                string_append(err_msg, " (0x", 4);
+                char hexstr[9];
+                int_to_hex(x1, hexstr);
+                string_append(err_msg, hexstr, 8);
+                string_append(err_msg, ") <-", 4);
+                if (data1_is_number) {
+                    string_append(err_msg, "number", 6);
+                } else {
+                    string_append(err_msg, g_line_parts[2].txt, g_line_parts[2].len);
+                }
+                string_append(err_msg, " (0x", 4);
+                int_to_hex(x2, hexstr);
+                string_append(err_msg, hexstr, 8);
+                string_append(err_msg, ")\r\n", 3);
+            }
         }
     } else if (string_in_list(&g_line_parts[0], "while if")) {
         if (g_line_parts[2].len == 0) {
@@ -667,17 +731,6 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *err_msg)
                 err_code = 7;
                 string_init(err_msg, "ERR 7: Reusing active tag\r\n");
             }
-        }
-    } else if (string_in_list(&g_line_parts[0], "peek poke")) {
-        if (result_tag_addr == 0) {
-            err_code = 8; // Invalid address
-            string_init(err_msg, "ERR  8: Invalid address\r\n");
-        } else if (g_line_parts[2].len == 0) {
-            err_code = 9; // Missing variable
-            string_init(err_msg, "ERR 9: Missing variable\r\n");
-        } else if (string_in_list(&g_line_parts[0], "poke") && data1 == 0) {
-            err_code = 10; // undefined source variable
-            string_init(err_msg, "ERR 10: Undefined source variable\r\n");
         }
     } else if (string_in_list(&g_line_parts[0], "else end")) {
         if (g_line_parts[1].len == 0) {
@@ -762,6 +815,9 @@ void u54_1(void) {
     uint64_t hartid = read_csr(mhartid);
 
 
+
+
+
     string_init(&g_line, "");
 
     clear_soft_interrupt();
@@ -801,19 +857,42 @@ void u54_1(void) {
     MSS_UART_enable_local_irq(&g_mss_uart1_lo);
 
     /* Demonstrating polled MMUART transmission */
-    MSS_UART_polled_tx(&g_mss_uart1_lo,g_message1, sizeof(g_message1));
+    // MSS_UART_polled_tx(&g_mss_uart1_lo,g_message1, sizeof(g_message1));
+    MSS_UART_polled_tx(&g_mss_uart1_lo,"PPL Command Interface\r\n", 23);
 
     /* Demonstrating interrupt method of transmission */
-    MSS_UART_irq_tx(&g_mss_uart1_lo, g_message2, sizeof(g_message2));
+//    MSS_UART_irq_tx(&g_mss_uart1_lo, g_message2, sizeof(g_message2));
 
     /* Makes sure that the previous interrupt based transmission is completed
      * Alternatively, you could register TX complete handler using
      * MSS_UART_set_tx_handler() */
-    while (0u == MSS_UART_tx_complete(&g_mss_uart1_lo)) {
-        ;
-    }
+//    while (0u == MSS_UART_tx_complete(&g_mss_uart1_lo)) {
+//        ;
+//    }
 
     mcycle_start = readmcycle();
+
+    // WRITE AND READ AXI FABRIC
+    MSS_UART_polled_tx(&g_mss_uart1_lo, "START MEMORY TEST\r\n", 17);
+    SYSREG->SOFT_RESET_CR &= ~(SOFT_RESET_CR_FIC0_MASK | SOFT_RESET_CR_FPGA_MASK);
+    SYSREG->SUBBLK_CLOCK_CR = 0xffffffff;
+    uint64_t *ptr; ptr = (uint64_t *)0x61000000U;
+    for (uint64_t x = 0; x < 0xf; x++) {
+        *ptr = x;
+        ptr = ptr + 1;
+    }
+    ptr = (uint64_t *)0x61000000U;
+    for (volatile uint64_t data = 0, x = 0; x < 0xf; x++, ptr=ptr+1) {
+        data = *ptr;
+        if (data == x) {
+            MSS_UART_polled_tx(&g_mss_uart1_lo, "p", 1);
+        } else {
+            MSS_UART_polled_tx(&g_mss_uart1_lo, "F", 1);
+       }
+    }
+    MSS_UART_polled_tx(&g_mss_uart1_lo, "\r\nEND MEMORY TEST\r\n", 19);
+    MSS_UART_polled_tx(&g_mss_uart1_lo, "=> ", 3);
+
     while (1u) {
         if (g_line_ready) {
             g_line_ready = false;

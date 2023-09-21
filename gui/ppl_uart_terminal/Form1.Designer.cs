@@ -35,13 +35,13 @@
             this.serialPort1 = new System.IO.Ports.SerialPort(this.components);
             this.buttonConnect = new System.Windows.Forms.Button();
             this.groupBoxConnect = new System.Windows.Forms.GroupBox();
+            this.radioButton2 = new System.Windows.Forms.RadioButton();
+            this.radioButton1 = new System.Windows.Forms.RadioButton();
             this.buttonRefresh = new System.Windows.Forms.Button();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.toolTipTrigger = new System.Windows.Forms.ToolTip(this.components);
             this.groupBoxConsole = new System.Windows.Forms.GroupBox();
             this.textBoxConsole = new System.Windows.Forms.TextBox();
-            this.radioButton1 = new System.Windows.Forms.RadioButton();
-            this.radioButton2 = new System.Windows.Forms.RadioButton();
             this.groupBoxConnect.SuspendLayout();
             this.groupBoxConsole.SuspendLayout();
             this.SuspendLayout();
@@ -121,6 +121,31 @@
             this.groupBoxConnect.TabStop = false;
             this.groupBoxConnect.Text = "Connect";
             // 
+            // radioButton2
+            // 
+            this.radioButton2.AutoSize = true;
+            this.radioButton2.Checked = true;
+            this.radioButton2.Location = new System.Drawing.Point(190, 125);
+            this.radioButton2.Name = "radioButton2";
+            this.radioButton2.Size = new System.Drawing.Size(61, 17);
+            this.radioButton2.TabIndex = 17;
+            this.radioButton2.TabStop = true;
+            this.radioButton2.Text = "115200";
+            this.radioButton2.TextAlign = System.Drawing.ContentAlignment.TopLeft;
+            this.radioButton2.UseVisualStyleBackColor = true;
+            this.radioButton2.CheckedChanged += new System.EventHandler(this.radioButton2_CheckedChanged);
+            // 
+            // radioButton1
+            // 
+            this.radioButton1.AutoSize = true;
+            this.radioButton1.Location = new System.Drawing.Point(82, 125);
+            this.radioButton1.Name = "radioButton1";
+            this.radioButton1.Size = new System.Drawing.Size(49, 17);
+            this.radioButton1.TabIndex = 16;
+            this.radioButton1.TabStop = true;
+            this.radioButton1.Text = "9600";
+            this.radioButton1.UseVisualStyleBackColor = true;
+            // 
             // buttonRefresh
             // 
             this.buttonRefresh.BackColor = System.Drawing.Color.Gray;
@@ -170,31 +195,6 @@
             this.textBoxConsole.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.textBoxConsole.Size = new System.Drawing.Size(953, 758);
             this.textBoxConsole.TabIndex = 4;
-            // 
-            // radioButton1
-            // 
-            this.radioButton1.AutoSize = true;
-            this.radioButton1.Location = new System.Drawing.Point(82, 125);
-            this.radioButton1.Name = "radioButton1";
-            this.radioButton1.Size = new System.Drawing.Size(49, 17);
-            this.radioButton1.TabIndex = 16;
-            this.radioButton1.TabStop = true;
-            this.radioButton1.Text = "9600";
-            this.radioButton1.UseVisualStyleBackColor = true;
-            // 
-            // radioButton2
-            // 
-            this.radioButton2.AutoSize = true;
-            this.radioButton2.Checked = true;
-            this.radioButton2.Location = new System.Drawing.Point(190, 125);
-            this.radioButton2.Name = "radioButton2";
-            this.radioButton2.Size = new System.Drawing.Size(61, 17);
-            this.radioButton2.TabIndex = 17;
-            this.radioButton2.TabStop = true;
-            this.radioButton2.Text = "115200";
-            this.radioButton2.TextAlign = System.Drawing.ContentAlignment.TopLeft;
-            this.radioButton2.UseVisualStyleBackColor = true;
-            this.radioButton2.CheckedChanged += new System.EventHandler(this.radioButton2_CheckedChanged);
             // 
             // Form1
             // 
