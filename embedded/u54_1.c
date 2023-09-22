@@ -22,6 +22,9 @@
 #define PRINT(S) string_init(&g_tmp_str, S); MSS_UART_polled_tx(&g_mss_uart1_lo, g_tmp_str.txt, g_tmp_str.len);
 
 
+uint64_t * const fabric_base_addr = (uint64_t *)0x61000000U;
+
+
 /******************************************************************************
  * Instruction message. This message will be transmitted over the UART when
  * the program starts.
@@ -455,7 +458,7 @@ uint8_t ppl_remove_tag(ppl_t *ppl_vm, string_t *tag_name)
 
 
 
-void ppl_dumpvar(ppl_t *ppl_vm)
+void ppl_dumpvars(ppl_t *ppl_vm)
 {
     for (int i = 1; i < ppl_vm->data_len; i++) {
         char s[12];
@@ -477,8 +480,18 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *err_msg)
     uint8_t err_code = 0;
     string_get_words(line, g_line_parts);
     if (string_in_list(&g_line_parts[1], "=")) {
-        // change from: v = a + b to: = v + a b
+        // change from: v = a + b   to: = v + a b
         string_swap(&g_line_parts[0], &g_line_parts[1]);
+    } else if (string_in_list(&g_line_parts[0], "peek poke")) {
+        // change from: peek a b    to: peek - a - v
+        string_swap(&g_line_parts[2], &g_line_parts[4]);
+        string_swap(&g_line_parts[1], &g_line_parts[2]);
+        string_init(&g_tmp_str, "Command is Peek/Poke. a = ");
+        string_append(&g_tmp_str, g_line_parts[2].txt, g_line_parts[2].len);
+        string_append(&g_tmp_str, ", data = ", 9);
+        string_append(&g_tmp_str, g_line_parts[4].txt, g_line_parts[4].len);
+        string_append(&g_tmp_str, ".\n\r", 3);
+        MSS_UART_polled_tx(&g_mss_uart1_lo, g_tmp_str.txt, g_tmp_str.len);
     }
 
 
@@ -546,10 +559,10 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *err_msg)
         result_is_tag = true;
     }
 
-    bool data1_is_number = false;
+    bool data1_is_number;
     uint32_t data1 = ppl_get_data_index(ppl_vm, &g_line_parts[2], &data1_is_number);
 
-    bool data2_is_number = false;
+    bool data2_is_number;
     uint32_t data2 = ppl_get_data_index(ppl_vm, &g_line_parts[4], &data2_is_number);
 
     uint8_t result_tag_addr = 0;
@@ -561,8 +574,8 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *err_msg)
     }
 
     string_init(err_msg, "No errors detected\r\n");
-    if (string_in_list(&g_line_parts[0], "dumpvar")) {
-        ppl_dumpvar(ppl_vm);
+    if (string_in_list(&g_line_parts[0], "dumpvars")) {
+        ppl_dumpvars(ppl_vm);
         string_init(err_msg, "");
     } else if (opcode == 0U) {
         err_code = 1;
@@ -644,64 +657,61 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *err_msg)
             string_append(err_msg, "\r\n", 2);
         }
     } else if (string_in_list(&g_line_parts[0], "peek poke")) {
-        if (g_line_parts[1].len == 0) {
+        if (g_line_parts[2].len == 0) {
             string_init(err_msg, "ERR 2.1: Missing address\r\n");
-        } else if (result_tag_addr == 0) {
+        } else if ((data1 == 0) && !data1_is_number) {
             string_init(err_msg, "ERR 2.2. Undefined address '");
-            string_append(err_msg, g_line_parts[1].txt, g_line_parts[1].len);
+            string_append(err_msg, g_line_parts[2].txt, g_line_parts[2].len);
             string_append(err_msg, "'\r\n", 3);
-        } else if (g_line_parts[2].len == 0) {
+        } else if (g_line_parts[4].len == 0) {
             string_init(err_msg, "ERR 2.3: Missing value or variable after address\r\n");
-        } else if (string_in_list(&g_line_parts[0], "peek") && data1_is_number) {
+        } else if (string_in_list(&g_line_parts[0], "peek") && data2_is_number) {
             string_init(err_msg, "ERR 2.4. return variable is actually a number '");
-            string_append(err_msg, g_line_parts[2].txt, g_line_parts[2].len);
+            string_append(err_msg, g_line_parts[4].txt, g_line_parts[4].len);
             string_append(err_msg, "'\r\n", 3);
-        } else if (string_in_list(&g_line_parts[0], "poke") && data1 == 0 && !data1_is_number) {
+        } else if (string_in_list(&g_line_parts[0], "poke") && data2 == 0 && !data2_is_number) {
             string_init(err_msg, "ERR 2.5. Undefined variable '");
-            string_append(err_msg, g_line_parts[2].txt, g_line_parts[2].len);
+            string_append(err_msg, g_line_parts[4].txt, g_line_parts[4].len);
             string_append(err_msg, "'\r\n", 3);
         } else {
             uint32_t x1 = data1_is_number ? data1 : ppl_vm->data_mem[data1].val;
-            uint64_t *addr;
-            addr = (uint64_t *)x1;
             uint32_t x2 = data2_is_number ? data2 : ppl_vm->data_mem[data2].val;
             if (string_in_list(&g_line_parts[0], "peek")) {
-                uint64_t val = *addr;
+                uint64_t val = fabric_base_addr[x1];
                 ppl_vm->data_mem[data2].val = (uint32_t)val;
-                string_init(err_msg, g_line_parts[2].txt);
-                string_append(err_msg, " (", 2);
                 char hexstr[9];
                 int_to_hex(ppl_vm->data_mem[data2].val, hexstr);
-                string_append(err_msg,hexstr, 8);
-                string_append(err_msg, ") = peek ", 8);
-                if (data1_is_number) {
-                    string_append(err_msg, "number", 6);
-                } else {
-                    string_append(err_msg, g_line_parts[1].txt, g_line_parts[1].len);
-                }
-                string_append(err_msg, " (0x", 4);
+                string_init(err_msg, hexstr);
+                string_append(err_msg, " (var ", 6);
+                string_append(err_msg,g_line_parts[4].txt, g_line_parts[4].len);
+                string_append(err_msg, ") = peek ", 9);
+                string_append(err_msg, "0x", 4);
                 int_to_hex(x1, hexstr);
                 string_append(err_msg, hexstr, 8);
-                string_append(err_msg, ")\r\n", 3);
-            } else { // poke
-                string_init(err_msg,"poke ");
-                *addr = (uint64_t)x2;
-
-                if (data1_is_number) {
-                    string_append(err_msg, "addr", 4);
-                } else {
-                    string_append(err_msg, g_line_parts[1].txt, g_line_parts[1].len);
-                }
-                string_append(err_msg, " (0x", 4);
-                char hexstr[9];
-                int_to_hex(x1, hexstr);
-                string_append(err_msg, hexstr, 8);
-                string_append(err_msg, ") <-", 4);
+                string_append(err_msg, " (", 2);
                 if (data1_is_number) {
                     string_append(err_msg, "number", 6);
                 } else {
                     string_append(err_msg, g_line_parts[2].txt, g_line_parts[2].len);
                 }
+                string_append(err_msg, ")\r\n", 3);
+            } else { // poke
+                string_init(err_msg,"poke ");
+                fabric_base_addr[x1] = (uint64_t)x2;
+                if (data1_is_number) {
+                    string_append(err_msg, "addr", 4);
+                } else {
+                    string_append(err_msg, g_line_parts[2].txt, g_line_parts[2].len);
+                }
+                string_append(err_msg, "[0x", 4);
+                char hexstr[9];
+                int_to_hex(x1, hexstr);
+                string_append(err_msg, hexstr, 8);
+                string_append(err_msg, "] <- ", 5);
+                if (data1_is_number) {
+                    string_append(err_msg, "number", 6);
+                }
+                string_append(err_msg, g_line_parts[4].txt, g_line_parts[4].len);
                 string_append(err_msg, " (0x", 4);
                 int_to_hex(x2, hexstr);
                 string_append(err_msg, hexstr, 8);
@@ -771,7 +781,7 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *err_msg)
 
 void rx_append(void) {
     string_append(&g_line, g_rx_buff, g_rx_size);
-    if (g_rx_buff[0] == '\n') {
+    if (g_rx_buff[0] == '\n' || g_rx_buff[0] == '\r') {
         g_line_ready = true;
     }
 }
@@ -876,14 +886,12 @@ void u54_1(void) {
     MSS_UART_polled_tx(&g_mss_uart1_lo, "START MEMORY TEST\r\n", 17);
     SYSREG->SOFT_RESET_CR &= ~(SOFT_RESET_CR_FIC0_MASK | SOFT_RESET_CR_FPGA_MASK);
     SYSREG->SUBBLK_CLOCK_CR = 0xffffffff;
-    uint64_t *ptr; ptr = (uint64_t *)0x61000000U;
     for (uint64_t x = 0; x < 0xf; x++) {
-        *ptr = x;
-        ptr = ptr + 1;
+        fabric_base_addr[x] = x;
     }
-    ptr = (uint64_t *)0x61000000U;
-    for (volatile uint64_t data = 0, x = 0; x < 0xf; x++, ptr=ptr+1) {
-        data = *ptr;
+
+    for (volatile uint64_t data = 0, x = 0; x < 0xf; x++) {
+        data = fabric_base_addr[x];
         if (data == x) {
             MSS_UART_polled_tx(&g_mss_uart1_lo, "p", 1);
         } else {

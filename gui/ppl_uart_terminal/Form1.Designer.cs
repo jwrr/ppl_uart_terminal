@@ -35,13 +35,17 @@
             this.serialPort1 = new System.IO.Ports.SerialPort(this.components);
             this.buttonConnect = new System.Windows.Forms.Button();
             this.groupBoxConnect = new System.Windows.Forms.GroupBox();
-            this.radioButton2 = new System.Windows.Forms.RadioButton();
-            this.radioButton1 = new System.Windows.Forms.RadioButton();
+            this.comboBoxNewLine = new System.Windows.Forms.ComboBox();
+            this.textBox3 = new System.Windows.Forms.TextBox();
+            this.comboBoxBaudRate = new System.Windows.Forms.ComboBox();
+            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.textBox1 = new System.Windows.Forms.TextBox();
             this.buttonRefresh = new System.Windows.Forms.Button();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.toolTipTrigger = new System.Windows.Forms.ToolTip(this.components);
             this.groupBoxConsole = new System.Windows.Forms.GroupBox();
             this.textBoxConsole = new System.Windows.Forms.TextBox();
+            this.buttonClear = new System.Windows.Forms.Button();
             this.groupBoxConnect.SuspendLayout();
             this.groupBoxConsole.SuspendLayout();
             this.SuspendLayout();
@@ -50,10 +54,10 @@
             // 
             this.comboBoxAvailablePorts.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.comboBoxAvailablePorts.FormattingEnabled = true;
-            this.comboBoxAvailablePorts.Location = new System.Drawing.Point(70, 17);
+            this.comboBoxAvailablePorts.Location = new System.Drawing.Point(91, 22);
             this.comboBoxAvailablePorts.Margin = new System.Windows.Forms.Padding(2);
             this.comboBoxAvailablePorts.Name = "comboBoxAvailablePorts";
-            this.comboBoxAvailablePorts.Size = new System.Drawing.Size(235, 25);
+            this.comboBoxAvailablePorts.Size = new System.Drawing.Size(254, 25);
             this.comboBoxAvailablePorts.TabIndex = 0;
             this.comboBoxAvailablePorts.DropDown += new System.EventHandler(this.comboBoxAvailablePorts_DropDown);
             this.comboBoxAvailablePorts.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
@@ -96,7 +100,7 @@
             this.buttonConnect.BackColor = System.Drawing.Color.Gray;
             this.buttonConnect.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttonConnect.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.buttonConnect.Location = new System.Drawing.Point(190, 52);
+            this.buttonConnect.Location = new System.Drawing.Point(186, 156);
             this.buttonConnect.Margin = new System.Windows.Forms.Padding(2);
             this.buttonConnect.Name = "buttonConnect";
             this.buttonConnect.Size = new System.Drawing.Size(115, 41);
@@ -107,8 +111,12 @@
             // 
             // groupBoxConnect
             // 
-            this.groupBoxConnect.Controls.Add(this.radioButton2);
-            this.groupBoxConnect.Controls.Add(this.radioButton1);
+            this.groupBoxConnect.Controls.Add(this.buttonClear);
+            this.groupBoxConnect.Controls.Add(this.comboBoxNewLine);
+            this.groupBoxConnect.Controls.Add(this.textBox3);
+            this.groupBoxConnect.Controls.Add(this.comboBoxBaudRate);
+            this.groupBoxConnect.Controls.Add(this.textBox2);
+            this.groupBoxConnect.Controls.Add(this.textBox1);
             this.groupBoxConnect.Controls.Add(this.buttonRefresh);
             this.groupBoxConnect.Controls.Add(this.comboBoxAvailablePorts);
             this.groupBoxConnect.Controls.Add(this.buttonConnect);
@@ -116,42 +124,80 @@
             this.groupBoxConnect.Margin = new System.Windows.Forms.Padding(2);
             this.groupBoxConnect.Name = "groupBoxConnect";
             this.groupBoxConnect.Padding = new System.Windows.Forms.Padding(2);
-            this.groupBoxConnect.Size = new System.Drawing.Size(363, 172);
+            this.groupBoxConnect.Size = new System.Drawing.Size(363, 287);
             this.groupBoxConnect.TabIndex = 15;
             this.groupBoxConnect.TabStop = false;
             this.groupBoxConnect.Text = "Connect";
             // 
-            // radioButton2
+            // comboBoxNewLine
             // 
-            this.radioButton2.AutoSize = true;
-            this.radioButton2.Checked = true;
-            this.radioButton2.Location = new System.Drawing.Point(190, 125);
-            this.radioButton2.Name = "radioButton2";
-            this.radioButton2.Size = new System.Drawing.Size(61, 17);
-            this.radioButton2.TabIndex = 17;
-            this.radioButton2.TabStop = true;
-            this.radioButton2.Text = "115200";
-            this.radioButton2.TextAlign = System.Drawing.ContentAlignment.TopLeft;
-            this.radioButton2.UseVisualStyleBackColor = true;
-            this.radioButton2.CheckedChanged += new System.EventHandler(this.radioButton2_CheckedChanged);
+            this.comboBoxNewLine.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.comboBoxNewLine.FormattingEnabled = true;
+            this.comboBoxNewLine.Items.AddRange(new object[] {
+            "\\r",
+            "\\n",
+            "\\r\\n"});
+            this.comboBoxNewLine.Location = new System.Drawing.Point(91, 105);
+            this.comboBoxNewLine.Margin = new System.Windows.Forms.Padding(2);
+            this.comboBoxNewLine.Name = "comboBoxNewLine";
+            this.comboBoxNewLine.Size = new System.Drawing.Size(254, 25);
+            this.comboBoxNewLine.TabIndex = 22;
+            this.comboBoxNewLine.Text = "\\r (CR = PuTTY\'s default)";
+            this.comboBoxNewLine.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged_1);
             // 
-            // radioButton1
+            // textBox3
             // 
-            this.radioButton1.AutoSize = true;
-            this.radioButton1.Location = new System.Drawing.Point(82, 125);
-            this.radioButton1.Name = "radioButton1";
-            this.radioButton1.Size = new System.Drawing.Size(49, 17);
-            this.radioButton1.TabIndex = 16;
-            this.radioButton1.TabStop = true;
-            this.radioButton1.Text = "9600";
-            this.radioButton1.UseVisualStyleBackColor = true;
+            this.textBox3.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.textBox3.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.textBox3.Location = new System.Drawing.Point(18, 105);
+            this.textBox3.Name = "textBox3";
+            this.textBox3.Size = new System.Drawing.Size(68, 24);
+            this.textBox3.TabIndex = 21;
+            this.textBox3.Text = "Newline";
+            this.textBox3.TextChanged += new System.EventHandler(this.textBox3_TextChanged);
+            // 
+            // comboBoxBaudRate
+            // 
+            this.comboBoxBaudRate.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.comboBoxBaudRate.FormattingEnabled = true;
+            this.comboBoxBaudRate.Items.AddRange(new object[] {
+            "115200",
+            "9600"});
+            this.comboBoxBaudRate.Location = new System.Drawing.Point(91, 66);
+            this.comboBoxBaudRate.Margin = new System.Windows.Forms.Padding(2);
+            this.comboBoxBaudRate.Name = "comboBoxBaudRate";
+            this.comboBoxBaudRate.Size = new System.Drawing.Size(254, 25);
+            this.comboBoxBaudRate.TabIndex = 20;
+            this.comboBoxBaudRate.Text = "115200";
+            // 
+            // textBox2
+            // 
+            this.textBox2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.textBox2.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.textBox2.Location = new System.Drawing.Point(18, 66);
+            this.textBox2.Name = "textBox2";
+            this.textBox2.Size = new System.Drawing.Size(68, 24);
+            this.textBox2.TabIndex = 19;
+            this.textBox2.Text = "Baud";
+            this.textBox2.TextChanged += new System.EventHandler(this.textBox2_TextChanged);
+            // 
+            // textBox1
+            // 
+            this.textBox1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.textBox1.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.textBox1.Location = new System.Drawing.Point(18, 23);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.Size = new System.Drawing.Size(68, 24);
+            this.textBox1.TabIndex = 18;
+            this.textBox1.Text = "Port";
+            this.textBox1.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
             // 
             // buttonRefresh
             // 
             this.buttonRefresh.BackColor = System.Drawing.Color.Gray;
             this.buttonRefresh.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttonRefresh.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.buttonRefresh.Location = new System.Drawing.Point(70, 52);
+            this.buttonRefresh.Location = new System.Drawing.Point(47, 156);
             this.buttonRefresh.Margin = new System.Windows.Forms.Padding(2);
             this.buttonRefresh.Name = "buttonRefresh";
             this.buttonRefresh.Size = new System.Drawing.Size(115, 41);
@@ -196,6 +242,20 @@
             this.textBoxConsole.Size = new System.Drawing.Size(953, 758);
             this.textBoxConsole.TabIndex = 4;
             // 
+            // buttonClear
+            // 
+            this.buttonClear.BackColor = System.Drawing.Color.Gray;
+            this.buttonClear.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.buttonClear.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
+            this.buttonClear.Location = new System.Drawing.Point(119, 210);
+            this.buttonClear.Margin = new System.Windows.Forms.Padding(2);
+            this.buttonClear.Name = "buttonClear";
+            this.buttonClear.Size = new System.Drawing.Size(115, 73);
+            this.buttonClear.TabIndex = 23;
+            this.buttonClear.Text = "CLEAR CONSOLE";
+            this.buttonClear.UseVisualStyleBackColor = false;
+            this.buttonClear.Click += new System.EventHandler(this.buttonClear_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -231,8 +291,12 @@
         private System.Windows.Forms.ToolTip toolTipTrigger;
         private System.Windows.Forms.GroupBox groupBoxConsole;
         private System.Windows.Forms.TextBox textBoxConsole;
-        private System.Windows.Forms.RadioButton radioButton1;
-        private System.Windows.Forms.RadioButton radioButton2;
+        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.ComboBox comboBoxNewLine;
+        private System.Windows.Forms.TextBox textBox3;
+        private System.Windows.Forms.ComboBox comboBoxBaudRate;
+        private System.Windows.Forms.Button buttonClear;
     }
 }
 

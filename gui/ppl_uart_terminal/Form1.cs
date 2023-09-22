@@ -26,6 +26,7 @@ namespace usb_gui
 
         bool getAvailablePorts()
         {
+
             timer1.Stop();
             bool fail = false;
             this.Text = this.Text.Split('-')[0];
@@ -100,7 +101,7 @@ namespace usb_gui
             try
             {
                 serialPort1.PortName = portName;
-                serialPort1.BaudRate = 115200; // 9600;
+                serialPort1.BaudRate = Int32.Parse(comboBoxBaudRate.Text);  // 115200; // 9600;
                 serialPort1.DataReceived += new SerialDataReceivedEventHandler(serialPort1_DataReceived);
                 serialPort1.Open();
                 success = true;
@@ -129,36 +130,20 @@ namespace usb_gui
             }
         }
 
-        private bool rcvFromDevice(string rxTerminationStr = "")
-        {
-            if (!serialPort1.IsOpen)
-            {
-                return false;
-            }
-            bool rxTerminatorFound = false;
-            string rxStr = "";
-            while (!rxTerminatorFound)
-            {
-                if (serialPort1.BytesToRead > 0)
-                {
-                    rxStr = serialPort1.ReadExisting();
-                    rxTerminatorFound = rxStr.Contains(rxTerminationStr);
-                    rxStr = rxStr.Replace("\r", "");
-                    rxStr = rxStr.Replace("\n", Environment.NewLine);
-                    textBoxConsole.AppendText(rxStr);
-                    rxStr = "";
-                }
-            }
-            return true; // success
-        }
-
         private bool sendCommandLine(string rxTerminationStr = G_prompt)
         {
             String cmd = commandLine.Text;
             try
             {
                 Console.WriteLine("CMD> " + cmd);
-                serialPort1.WriteLine(cmd + "\r"); 
+                string newline = "\n";
+                if (comboBoxNewLine.Text.Contains("r") && comboBoxNewLine.Text.Contains("n"))
+                {
+                    newline = "\r\n";
+                } else if (comboBoxNewLine.Text.Contains("r")) {
+                    newline = "\r";
+                }
+                serialPort1.Write(cmd + newline);
             }
             catch
             {
@@ -166,14 +151,8 @@ namespace usb_gui
                 //restartApp("Failed writing to port");
             }
 
-//            if (textBoxConsole.Enabled)
-//            {
-//                textBoxConsole.AppendText(cmd + Environment.NewLine);
-//            }
-            // FIXME - bool success = rcvFromDevice(rxTerminationStr);
-            bool success = true;
             commandLine.Text = "";
-            return success;
+            return true;
         }
 
         private void handleSend()
@@ -198,14 +177,13 @@ namespace usb_gui
 
         private void serialPort1_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            // textBoxConsole.Text += serialPort1.ReadExisting();
             String rxStr = serialPort1.ReadExisting();
-            String rxStr2 = rxStr;
-            rxStr2 = rxStr2.Replace("\r\n", "<rn>");
-            rxStr2 = rxStr2.Replace("\r\n", "<rn>");
-            rxStr2 = rxStr2.Replace("\r", "<r>");
-            rxStr2 = rxStr2.Replace("\n", "<n>");
-            Console.WriteLine(rxStr2);
+            rxStr = rxStr.Replace("\r\n", "\n");
+            rxStr = rxStr.Replace("\n\r", "\n");
+            rxStr = rxStr.Replace("\r", "\n");
+            rxStr = rxStr.Replace("\n", Environment.NewLine);
+
+            Console.WriteLine(rxStr);
             textBoxConsole.Invoke((MethodInvoker)delegate
             {
                 textBoxConsole.Text += rxStr;
@@ -276,9 +254,30 @@ namespace usb_gui
             bool success = getAvailablePorts();
         }
 
-        private void radioButton2_CheckedChanged(object sender, EventArgs e)
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
         {
 
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void comboBox1_SelectedIndexChanged_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void buttonClear_Click(object sender, EventArgs e)
+        {
+            textBoxConsole.Clear();
         }
     }
 }
