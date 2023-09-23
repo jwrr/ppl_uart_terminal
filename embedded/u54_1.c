@@ -30,8 +30,7 @@ uint64_t * const fabric_base_addr = (uint64_t *)0x61000000U;
  * the program starts.
  *****************************************************************************/
 
-const uint8_t g_message1[] =
-        "\r\n\r\n\r\n **** PolarFire SoC MSS MMUART PPL Demo ****\r\n\r\n\r\n";
+const uint8_t g_message1[] = "POLARFIRE SOC MSS MMUART PPL REPL\r\n\r\n";
 
 const uint8_t g_message2[] =
         "This program is run from u54_1\r\n\
@@ -67,7 +66,7 @@ string_t g_line;
 #define NUM_LINE_PARTS 5
 string_t g_line_parts[NUM_LINE_PARTS];
 string_t g_tmp_str;
-string_t g_err_msg;
+string_t g_msg;
 
 bool g_line_ready = false;
 bool g_echo = true;
@@ -118,6 +117,51 @@ size_t string_append(string_t *str, const uint8_t ch_array[], size_t n)
     str->cur = str->len;
     str->txt[str->len] = 0U;
     return n;
+}
+
+
+size_t string_append2(string_t *str, const uint8_t s1[], const uint8_t s2[])
+{
+    size_t orig1_len = str->len;
+    size_t s1_len = strlen(s1);
+    if (s1_len) {
+        string_append(str, s1, s1_len);
+        size_t new_len = str->len;
+        if (new_len == orig1_len) return 0;
+    }
+    size_t orig2_len = str->len;
+    size_t s2_len = strlen(s2);
+    if (s2_len) {
+        string_append(str, s2, s2_len);
+        size_t new_len = str->len;
+        if (new_len == orig2_len) return 0;
+    }
+    return str->len - orig1_len;
+}
+
+
+size_t string_append4(string_t *str, const uint8_t s1[], const uint8_t s2[], const uint8_t s3[], const uint8_t s4[])
+{
+    size_t num_added = string_append2(str, s1, s2);
+    if (num_added == 0) return 0;
+    num_added += string_append2(str, s3, s4);
+    return num_added;
+}
+
+
+size_t string_init2(string_t *str, const uint8_t s1[], const uint8_t s2[])
+{
+    string_init(str, "");
+    string_append2(str, s1, s2);
+    return str->len;
+}
+
+
+size_t string_init4(string_t *str, const uint8_t s1[], const uint8_t s2[], const uint8_t s3[], const uint8_t s4[])
+{
+    string_init(str, "");
+    string_append4(str, s1, s2, s3, s4);
+    return str->len;
 }
 
 
@@ -205,8 +249,14 @@ void string_swap(string_t *s1, string_t *s2)
 }
 
 
+void string_print(string_t *str)
+{
+    if (str == NULL || str->len == 0) return;
+    MSS_UART_polled_tx(&g_mss_uart1_lo, str->txt, str->len);
+}
 
-void int_to_hex(uint32_t val, char str[])
+
+char * int_to_hex(uint32_t val, char str[])
 {
     uint32_t mask = 0xf;
     uint8_t ch = 0U;
@@ -218,6 +268,7 @@ void int_to_hex(uint32_t val, char str[])
         str[7-i] = hexchar;
         val = val >> 4;
     }
+    return str;
 }
 
 
@@ -460,22 +511,39 @@ uint8_t ppl_remove_tag(ppl_t *ppl_vm, string_t *tag_name)
 
 void ppl_dumpvars(ppl_t *ppl_vm)
 {
+    char str_i[12];
+    char str_val[12];
     for (int i = 1; i < ppl_vm->data_len; i++) {
-        char s[12];
-        int_to_hex(i, s);
-        string_init(&g_tmp_str, s);
-        string_append(&g_tmp_str, ": ", 2);
-        string_append(&g_tmp_str, ppl_vm->data_mem[i].name, 12);
-        string_append(&g_tmp_str, " = 0x", 3);
-        int_to_hex(ppl_vm->data_mem[i].val, s);
-        string_append(&g_tmp_str, s, 8);
-        string_append(&g_tmp_str, "\r\n", 2);
-        MSS_UART_polled_tx(&g_mss_uart1_lo, g_tmp_str.txt, g_tmp_str.len);
+        int_to_hex(i, str_i);
+        int_to_hex(ppl_vm->data_mem[i].val, str_val);
+        string_init4(&g_tmp_str, str_i, ": ", ppl_vm->data_mem[i].name, " = 0x");
+        string_append2(&g_tmp_str, str_val, "\r\n");
+        string_print(&g_tmp_str);
     }
 }
 
 
-uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *err_msg)
+bool ppl_append_inst(ppl_t *ppl_vm, uint8_t op, uint8_t rta, uint32_t d1, uint32_t d2, bool d1_is_num, bool d2_is_num)
+{
+    bool ok = 1;
+    if (ppl_vm->inst_i == 0) {
+        ppl_vm->inst_i = 1;
+    }
+    if (ppl_vm->inst_i >= sizeof(ppl_vm->inst_mem)) {
+        return !ok;
+    }
+    ppl_vm->inst_mem[ppl_vm->inst_i].opcode = op;
+    ppl_vm->inst_mem[ppl_vm->inst_i].data1 = d1;
+    ppl_vm->inst_mem[ppl_vm->inst_i].data2 = d2;
+    ppl_vm->inst_mem[ppl_vm->inst_i].data1_is_number = d1_is_num;
+    ppl_vm->inst_mem[ppl_vm->inst_i].data2_is_number = d2_is_num;
+    ppl_vm->inst_mem[ppl_vm->inst_i].result_tag_addr = rta;
+    ppl_vm->inst_i++;
+    return ok;
+}
+
+
+uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *msg)
 {
     uint8_t err_code = 0;
     string_get_words(line, g_line_parts);
@@ -486,12 +554,6 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *err_msg)
         // change from: peek a b    to: peek - a - v
         string_swap(&g_line_parts[2], &g_line_parts[4]);
         string_swap(&g_line_parts[1], &g_line_parts[2]);
-        string_init(&g_tmp_str, "Command is Peek/Poke. a = ");
-        string_append(&g_tmp_str, g_line_parts[2].txt, g_line_parts[2].len);
-        string_append(&g_tmp_str, ", data = ", 9);
-        string_append(&g_tmp_str, g_line_parts[4].txt, g_line_parts[4].len);
-        string_append(&g_tmp_str, ".\n\r", 3);
-        MSS_UART_polled_tx(&g_mss_uart1_lo, g_tmp_str.txt, g_tmp_str.len);
     }
 
 
@@ -573,47 +635,47 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *err_msg)
         result_tag_addr = (uint8_t)ppl_get_data_index(ppl_vm, &g_line_parts[1], &result_is_number);
     }
 
-    string_init(err_msg, "No errors detected\r\n");
+    string_init(msg, "No errors detected\r\n");
     if (string_in_list(&g_line_parts[0], "dumpvars")) {
+        err_code = 1;
         ppl_dumpvars(ppl_vm);
-        string_init(err_msg, "");
+        string_init(msg, "");
     } else if (opcode == 0U) {
         err_code = 1;
-        string_init(err_msg, "ERR 1: Unrecognized command '");
-        string_append(err_msg, g_line_parts[0].txt, g_line_parts[0].len);
-        string_append(err_msg, "'\r\n", 3);
+        string_init(msg, "ERR 1: Unrecognized command '");
+        string_append(msg, g_line_parts[0].txt, g_line_parts[0].len);
+        string_append(msg, "'\r\n", 3);
         return 1;
     }
 
     if (string_in_list(&g_line_parts[0], "=")) {
         if (g_line_parts[2].len == 0) {
-            string_init(err_msg, "ERR 1.1: Missing value or variable to be assigned\r\n");
+            err_code = 1;
+            string_init(msg, "ERR 1.1: Missing value or variable to be assigned\r\n");
         } else if (data1 == 0 && !data1_is_number) {
-            string_init(err_msg, "ERR 1.2: Undefined variable in expression '");
-            string_append(err_msg, g_line_parts[2].txt, g_line_parts[2].len);
-            string_append(err_msg, "'\r\n", 3);
+            err_code = 1;
+            string_init(msg, "ERR 1.2: Undefined variable in expression '");
+            string_append(msg, g_line_parts[2].txt, g_line_parts[2].len);
+            string_append(msg, "'\r\n", 3);
         } else if ((g_line_parts[3].len > 0) && (opcode & 0xF == 0)) {
-            string_init(err_msg, "ERR 1.3. Invalid operator '");
-            string_append(err_msg, g_line_parts[3].txt, g_line_parts[3].len);
-            string_append(err_msg, "'\r\n", 3);
+            err_code = 1;
+            string_init(msg, "ERR 1.3. Invalid operator '");
+            string_append(msg, g_line_parts[3].txt, g_line_parts[3].len);
+            string_append(msg, "'\r\n", 3);
         } else if ((opcode & 0xF) && (g_line_parts[4].len == 0)) {
-            string_init(err_msg, "ERR 1.4: Missing value or variable after operator\r\n");
+            err_code = 1;
+            string_init(msg, "ERR 1.4: Missing value or variable after operator\r\n");
         } else if ((opcode & 0xF) && (data2 == 0U && !data2_is_number)) {
-            string_init(err_msg, "ERR  1.5: Undefined variable after operator '");
-            string_append(err_msg, g_line_parts[4].txt, g_line_parts[4].len);
-            string_append(err_msg, "'\r\n", 3);
-        } else {
-
-            ppl_vm->inst_mem[ppl_vm->inst_i].opcode = opcode;
-            ppl_vm->inst_mem[ppl_vm->inst_i].data1 = data1;
-            ppl_vm->inst_mem[ppl_vm->inst_i].data2 = data2;
-            ppl_vm->inst_mem[ppl_vm->inst_i].data1_is_number = data1_is_number;
-            ppl_vm->inst_mem[ppl_vm->inst_i].data2_is_number = data2_is_number;
-            ppl_vm->inst_mem[ppl_vm->inst_i].result_tag_addr = result_tag_addr;
+            err_code = 1;
+            string_init(msg, "ERR  1.5: Undefined variable after operator '");
+            string_append(msg, g_line_parts[4].txt, g_line_parts[4].len);
+            string_append(msg, "'\r\n", 3);
+        } else { // no errors detected
             if (result_tag_addr == 0) {
                 result_tag_addr = ppl_append_data(ppl_vm, &g_line_parts[1]);
             }
-            // ppl_compute_data(ppl_vm, result_tag_addr, data1, operation, data2);
+
+            ppl_append_inst(ppl_vm, opcode, result_tag_addr, data1, data2, data1_is_number, data2_is_number);
 
             uint32_t x1 = data1_is_number ? data1 : ppl_vm->data_mem[data1].val;
             uint32_t x2 = data2_is_number ? data2 : ppl_vm->data_mem[data2].val;
@@ -640,119 +702,91 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *err_msg)
             }
 
             ppl_vm->data_mem[result_tag_addr].val = y;
-            string_init(err_msg, g_line_parts[1].txt);
-            string_append(err_msg, " = 0x", 5);
             char hexstr[9];
-            int_to_hex(y, hexstr);
-            string_append(err_msg, hexstr, 8);
-            string_append(err_msg, "; -- op=", 8);
-            int_to_hex(op, hexstr);
-            string_append(err_msg, hexstr, 8);
-            string_append(err_msg, ", x1=", 5);
-            int_to_hex(x1, hexstr);
-            string_append(err_msg, hexstr, 8);
-            string_append(err_msg, ", x2=", 5);
-            int_to_hex(x2, hexstr);
-            string_append(err_msg, hexstr, 8);
-            string_append(err_msg, "\r\n", 2);
+            string_init2(msg, "0x" , "");
+            string_append2(msg, int_to_hex(y, hexstr),  "; # op=0x");
+            string_append2(msg, int_to_hex(op, hexstr), ", x1=0x");
+            string_append2(msg, int_to_hex(x1, hexstr), ", x2=0x");
+            string_append2(msg, int_to_hex(x2, hexstr), "\r\n");
         }
     } else if (string_in_list(&g_line_parts[0], "peek poke")) {
         if (g_line_parts[2].len == 0) {
-            string_init(err_msg, "ERR 2.1: Missing address\r\n");
+            err_code = 1;
+            string_init2(msg, "ERR 2.1: Missing address\r\n" , "");
         } else if ((data1 == 0) && !data1_is_number) {
-            string_init(err_msg, "ERR 2.2. Undefined address '");
-            string_append(err_msg, g_line_parts[2].txt, g_line_parts[2].len);
-            string_append(err_msg, "'\r\n", 3);
-        } else if (g_line_parts[4].len == 0) {
-            string_init(err_msg, "ERR 2.3: Missing value or variable after address\r\n");
+            err_code = 1;
+            string_init4(msg, "ERR 2.2. Undefined address '", g_line_parts[2].txt, "'\r\n", "");
+        } else if (string_in_list(&g_line_parts[0], "poke") && (g_line_parts[4].len == 0)) {
+            err_code = 1;
+            string_init2(msg, "ERR 2.3: Missing poke value or variable after address\r\n" , "");
         } else if (string_in_list(&g_line_parts[0], "peek") && data2_is_number) {
-            string_init(err_msg, "ERR 2.4. return variable is actually a number '");
-            string_append(err_msg, g_line_parts[4].txt, g_line_parts[4].len);
-            string_append(err_msg, "'\r\n", 3);
+            err_code = 1;
+            string_init4(msg, "ERR 2.4. return variable is actually a number '", g_line_parts[4].txt, "'\r\n", "");
         } else if (string_in_list(&g_line_parts[0], "poke") && data2 == 0 && !data2_is_number) {
-            string_init(err_msg, "ERR 2.5. Undefined variable '");
-            string_append(err_msg, g_line_parts[4].txt, g_line_parts[4].len);
-            string_append(err_msg, "'\r\n", 3);
-        } else {
+            err_code = 1;
+            string_init4(msg, "ERR 2.5. Undefined variable '", g_line_parts[4].txt, "'\r\n", "");
+        } else { // peek poke no errors detected
+            ppl_append_inst(ppl_vm, opcode, result_tag_addr, data1, data2, data1_is_number, data2_is_number);
+
             uint32_t x1 = data1_is_number ? data1 : ppl_vm->data_mem[data1].val;
             uint32_t x2 = data2_is_number ? data2 : ppl_vm->data_mem[data2].val;
             if (string_in_list(&g_line_parts[0], "peek")) {
                 uint64_t val = fabric_base_addr[x1];
-                ppl_vm->data_mem[data2].val = (uint32_t)val;
+                bool dest_location_is_defined = g_line_parts[4].len > 0;
                 char hexstr[9];
-                int_to_hex(ppl_vm->data_mem[data2].val, hexstr);
-                string_init(err_msg, hexstr);
-                string_append(err_msg, " (var ", 6);
-                string_append(err_msg,g_line_parts[4].txt, g_line_parts[4].len);
-                string_append(err_msg, ") = peek ", 9);
-                string_append(err_msg, "0x", 4);
-                int_to_hex(x1, hexstr);
-                string_append(err_msg, hexstr, 8);
-                string_append(err_msg, " (", 2);
-                if (data1_is_number) {
-                    string_append(err_msg, "number", 6);
+                if (dest_location_is_defined) {
+                    ppl_vm->data_mem[data2].val = (uint32_t)val;
+                    int_to_hex(ppl_vm->data_mem[data1].val, hexstr);
                 } else {
-                    string_append(err_msg, g_line_parts[2].txt, g_line_parts[2].len);
+                    int_to_hex((uint32_t)val, hexstr);
                 }
-                string_append(err_msg, ")\r\n", 3);
+                string_init2(msg, "0x", hexstr);
+                int_to_hex(x1, hexstr);
+                string_append4(msg, "; # peek[0x", hexstr, "]", "\r\n");
             } else { // poke
-                string_init(err_msg,"poke ");
                 fabric_base_addr[x1] = (uint64_t)x2;
-                if (data1_is_number) {
-                    string_append(err_msg, "addr", 4);
-                } else {
-                    string_append(err_msg, g_line_parts[2].txt, g_line_parts[2].len);
-                }
-                string_append(err_msg, "[0x", 4);
                 char hexstr[9];
-                int_to_hex(x1, hexstr);
-                string_append(err_msg, hexstr, 8);
-                string_append(err_msg, "] <- ", 5);
-                if (data1_is_number) {
-                    string_append(err_msg, "number", 6);
-                }
-                string_append(err_msg, g_line_parts[4].txt, g_line_parts[4].len);
-                string_append(err_msg, " (0x", 4);
                 int_to_hex(x2, hexstr);
-                string_append(err_msg, hexstr, 8);
-                string_append(err_msg, ")\r\n", 3);
+                string_init2(msg, "0x", hexstr);
+                int_to_hex(x1, hexstr);
+                string_append4(msg, "; # poke [0x", hexstr, "]", "\r\n");
             }
         }
     } else if (string_in_list(&g_line_parts[0], "while if")) {
         if (g_line_parts[2].len == 0) {
             err_code = 2;
-            string_init(err_msg, "ERR 2: Missing data 1 value or variable\r\n");
+            string_init(msg, "ERR 2: Missing data 1 value or variable\r\n");
         } else if (data1 == 0 && !data1_is_number) {
             err_code = 3;
-            string_init(err_msg, "ERR 3: Undefined data 1 value variable '");
-            string_append(err_msg, g_line_parts[2].txt, g_line_parts[2].len);
-            string_append(err_msg, "'\r\n", 3);
+            string_init(msg, "ERR 3: Undefined data 1 value variable '");
+            string_append(msg, g_line_parts[2].txt, g_line_parts[2].len);
+            string_append(msg, "'\r\n", 3);
         } else if ((g_line_parts[3].len > 0) && (opcode & 0xF == 0)) {
             err_code = 4; // Invalid operator
-            string_init(err_msg, "ERR 4. Invalid operator\r\n");
+            string_init(msg, "ERR 4. Invalid operator\r\n");
         } else if ((opcode & 0xF) && (data2 == 0U && !data2_is_number)) {
             err_code = 5; // Invalid or missing operand 2
-            string_init(err_msg, "ERR  5: Invalid or missing operand 2\r\n");
+            string_init(msg, "ERR 5: Invalid or missing operand 2\r\n");
         }  if (string_in_list(&g_line_parts[0], "if while")) {
             if (g_line_parts[1].len == 0) {
                 err_code = 6;
-                string_init(err_msg, "ERR 6: Missing tag\r\n");
+                string_init(msg, "ERR 6: Missing tag\r\n");
             } else if (result_tag_addr != 0) {
                 err_code = 7;
-                string_init(err_msg, "ERR 7: Reusing active tag\r\n");
+                string_init(msg, "ERR 7: Reusing active tag\r\n");
             }
         }
     } else if (string_in_list(&g_line_parts[0], "else end")) {
         if (g_line_parts[1].len == 0) {
             err_code = 11;
-            string_init(err_msg, "ERR 11: Missing tag\r\n");
+            string_init(msg, "ERR 11: Missing tag\r\n");
         } else if (result_tag_addr == 0) {
             err_code = 12; // undefined tag
-            string_init(err_msg, "ERR 12: Undefined tag\r\n");
+            string_init(msg, "ERR 12: Undefined tag\r\n");
         }
     }
 
-
+/*
     if (err_code == 0) {
         ppl_vm->inst_mem[ppl_vm->inst_i].opcode = opcode;
         ppl_vm->inst_mem[ppl_vm->inst_i].data1 = data1;
@@ -761,16 +795,14 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *err_msg)
         ppl_vm->inst_mem[ppl_vm->inst_i].data2_is_number = data2_is_number;
         ppl_vm->inst_mem[ppl_vm->inst_i].result_tag_addr = result_tag_addr;
         if (string_in_list(&g_line_parts[0], "=")) {
-            if (result_tag_addr == 0) {
-                result_tag_addr = ppl_append_data(ppl_vm, &g_line_parts[1]);
-            }
-            ppl_compute_data(ppl_vm, result_tag_addr, data1, operation, data2);
+
         } else if (string_in_list(&g_line_parts[0], "if while")) {
             ppl_add_tag(ppl_vm, &g_line_parts[1]);
         } else if (string_in_list(&g_line_parts[0], "end")) {
             ppl_remove_tag(ppl_vm, &g_line_parts[1]);
         }
     }
+*/
 
     return err_code;
 }
@@ -904,10 +936,10 @@ void u54_1(void) {
     while (1u) {
         if (g_line_ready) {
             g_line_ready = false;
-            uint8_t err_code = ppl_compile_line(&g_ppl_vm, &g_line, &g_err_msg);
+            uint8_t err_code = ppl_compile_line(&g_ppl_vm, &g_line, &g_msg);
             string_init(&g_line, "");
-            if (g_err_msg.len > 0U) {
-                MSS_UART_polled_tx(&g_mss_uart1_lo, g_err_msg.txt, g_err_msg.len);
+            if (g_msg.len > 0U) {
+                string_print(&g_msg);
             }
             MSS_UART_polled_tx(&g_mss_uart1_lo, "=> ", 3);
 

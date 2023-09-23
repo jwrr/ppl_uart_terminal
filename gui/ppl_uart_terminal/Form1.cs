@@ -125,7 +125,7 @@ namespace usb_gui
             if (success)
             {
                 textBoxConsole.Enabled = true;
-                textBoxConsole.AppendText("Connected to " + portName + Environment.NewLine + "=> ");
+                textBoxConsole.AppendText("Connected to " + portName + ", waiting for rx input..." + Environment.NewLine);
                 this.Text += " - " + portName;
             }
         }
