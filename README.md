@@ -13,7 +13,7 @@ The terminal GUI is written in C# using WinForms. To run the GUI start Visual St
 * Enter lines to send to the remote device using the Send Dialog box, and
   monitor the responses with the Console read-only box.
 
-![suut screenshot](./img/suut.png)
+![suut screenshot](screenshot.png)
 
 Configuration
 -------------
