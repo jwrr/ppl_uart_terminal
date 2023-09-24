@@ -150,6 +150,7 @@ namespace usb_gui
                     newline = "\r";
                 }
                 serialPort1.Write(cmd + newline);
+                System.Threading.Thread.Sleep(100);
             }
             catch
             {
@@ -309,6 +310,7 @@ namespace usb_gui
 
         }
 
+
         private string[] slurpFile(string filename)
         {
             string[] lines = { };
@@ -322,6 +324,7 @@ namespace usb_gui
             return lines;
         }
 
+
         private void buttonRunScript_Click(object sender, EventArgs e)
         {
             string filename = comboBoxScript.Text;
@@ -329,8 +332,37 @@ namespace usb_gui
             foreach (string line in lines)
             {
                 sendCommandLine(line.Trim());
-                System.Threading.Thread.Sleep(50);
             }
+        }
+
+
+        private string[] splitLines(string multilineText)
+        {
+            string txt = textBoxScratch.Text.Replace(Environment.NewLine, "\r");
+            string[] lines = txt.Split('\r');
+            return lines;
+        }
+
+
+        private void buttonRunScratch_Click(object sender, EventArgs e)
+        {
+            string[] lines = splitLines(textBoxScratch.Text);
+            foreach (string line in lines)
+            {
+                sendCommandLine(line.Trim());
+            }
+        }
+
+        private void buttonLoadSnippet_Click(object sender, EventArgs e)
+        {
+            string filename = comboBoxScript.Text;
+            string[] lines = slurpFile(filename);
+            string txt = "";
+            foreach (string line in lines)
+            {
+                txt += line + Environment.NewLine;
+            }
+            textBoxScratch.Text = txt;
         }
     }
 }
