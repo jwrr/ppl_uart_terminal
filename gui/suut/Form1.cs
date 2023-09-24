@@ -130,9 +130,15 @@ namespace usb_gui
             }
         }
 
-        private bool sendCommandLine(string rxTerminationStr = G_prompt)
+        private bool sendCommandLine(string cmd = "")
         {
-            String cmd = commandLine.Text;
+            if (cmd == "")
+            {
+                cmd = commandLine.Text;
+            }
+
+            if (cmd == "") { return true; }
+
             try
             {
                 Console.WriteLine("CMD> " + cmd);
@@ -157,7 +163,7 @@ namespace usb_gui
 
         private void handleSend()
         {
-            sendCommandLine(G_prompt);
+            sendCommandLine();
         }
 
         private void buttonSend_Click(object sender, EventArgs e)
@@ -190,31 +196,6 @@ namespace usb_gui
                 textBoxConsole.SelectionStart = textBoxConsole.Text.Length;
                 textBoxConsole.ScrollToCaret();
             });
-        }
-
-
-        private string[] slurpFile()
-        {
-            string[] lines = {};
-            OpenFileDialog openFileDialog1 = new OpenFileDialog();
-            if (G_defaultFilename != "")
-            {
-                openFileDialog1.FileName = G_defaultFilename;
-            }
-            DialogResult result = openFileDialog1.ShowDialog();
-            if (result == DialogResult.OK)
-            {
-                string file = openFileDialog1.FileName;
-                try
-                {
-                    lines = File.ReadAllLines(file);
-                    G_defaultFilename = file;
-                }
-                catch (IOException)
-                {
-                }
-            }
-            return lines;
         }
 
 
@@ -280,6 +261,76 @@ namespace usb_gui
         private void buttonClear_Click(object sender, EventArgs e)
         {
             textBoxConsole.Clear();
+        }
+
+        private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
+        {
+
+        }
+
+        private void textBox4_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void buttonOpenScript_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog openFileDialog1 = new OpenFileDialog
+            {
+                InitialDirectory = @".",
+                Title = "Select Script",
+
+                CheckFileExists = true,
+                CheckPathExists = true,
+
+                DefaultExt = "txt",
+                Filter = "txt files (*.txt)|*.txt",
+                FilterIndex = 2,
+                RestoreDirectory = true,
+
+                ReadOnlyChecked = true,
+                ShowReadOnly = true
+            };
+
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                comboBoxScript.Items.Add(openFileDialog1.FileName);
+                comboBoxScript.Text = openFileDialog1.FileName;
+                // show tail end of long path+filename
+                comboBoxScript.SelectionStart = comboBoxScript.Text.Length;
+                comboBoxScript.SelectionLength = 0;
+
+            }
+
+        }
+
+        private void comboBoxScript_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private string[] slurpFile(string filename)
+        {
+            string[] lines = { };
+            try
+            {
+                lines = File.ReadAllLines(filename);
+            }
+            catch (IOException)
+            {
+            }
+            return lines;
+        }
+
+        private void buttonRunScript_Click(object sender, EventArgs e)
+        {
+            string filename = comboBoxScript.Text;
+            string[] lines = slurpFile(filename);
+            foreach (string line in lines)
+            {
+                sendCommandLine(line.Trim());
+                System.Threading.Thread.Sleep(50);
+            }
         }
     }
 }

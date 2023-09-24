@@ -74,7 +74,7 @@ bool g_echo = true;
 //#define INFOLEN 138U
 //uint8_t g_print_line[INFOLEN];
 
-void string_init(string_t *str, uint8_t ch_array[])
+void string_init(string_t *str, const uint8_t ch_array[])
 {
     str->size = sizeof(str->txt) - 1; // minus 1 accounts for null terminator
     str->len = 0U; // len is <= size < sizeof(txt)
@@ -93,15 +93,8 @@ void string_init(string_t *str, uint8_t ch_array[])
 
 bool string_copy(string_t *dest, const string_t *src)
 {
-    string_init(dest, "");
-    dest->len = (src->len <= dest->size) ? src->len : dest->size;
-    int i = 0;
-    for (; i <= dest->len; i++) {
-        dest->txt[i] = src->txt[i];
-    }
-    dest->txt[i] = 0U;
-    bool success = dest->len == src->len;
-    return success;
+    string_init(dest, src->txt);
+    return true;
 }
 
 
@@ -196,11 +189,16 @@ size_t string_get_word(string_t *str, string_t *word)
 }
 
 
-void string_get_words(string_t *cmd_line, string_t parts[]) {
+uint8_t string_get_words(string_t *cmd_line, string_t parts[]) {
     string_rtrim(cmd_line);
+    uint8_t num_words = 0;
     for (int i=0; i<NUM_LINE_PARTS; i++) {
         string_get_word(cmd_line, &parts[i]);
+        if (parts[i].len == 0 && num_words == 0) {
+            num_words = i + 1;
+        }
     }
+    return num_words;
 }
 
 
@@ -721,8 +719,17 @@ void ppl_run_cmd(ppl_t *ppl_vm, uint8_t pc, string_t *msg)
 uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *msg)
 {
     uint8_t err_code = 0;
-    string_get_words(line, g_line_parts);
-    if (string_in_list(&g_line_parts[1], "=")) {
+    const uint8_t num_words = string_get_words(line, g_line_parts);
+
+    const bool just_print_variable = (g_line_parts[0].len > 0) &&
+            (g_line_parts[1].len == 0) &&
+            !string_in_list(&g_line_parts[0], "dumpvars");
+    if (just_print_variable) {
+        // Change from: a to: a = a
+        string_copy(&g_line_parts[1], &g_line_parts[0]);
+        string_copy(&g_line_parts[2], &g_line_parts[0]);
+        string_init(&g_line_parts[0], "=");
+    } else if (string_in_list(&g_line_parts[1], "=")) {
         // change from: v = a + b   to: = v + a b
         string_swap(&g_line_parts[0], &g_line_parts[1]);
     } else if (string_in_list(&g_line_parts[0], "peek poke")) {
@@ -744,11 +751,28 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *msg)
 
     string_init(msg, "No errors detected\r\n");
     if (string_in_list(&g_line_parts[0], "dumpvars")) {
-        err_code = 1;
         ppl_dumpvars(ppl_vm);
         string_init(msg, "");
         return 0;
-    } else if (opcode == 0U) {
+    }
+
+    /*
+    const bool just_print_the_value = (num_words == 1);
+    if (just_print_the_value) {
+        bool data1_is_number;
+        uint32_t data1 = ppl_get_data_mem_offset(ppl_vm, &g_line_parts[2], &data1_is_number);
+        const data1_is_declared = (data1 != 0);
+        if  (!data1_is_number && !data1_is_declared) {
+            string_init4(msg, "ERR 0.1. Undeclared address '", g_line_parts[2].txt, "'\r\n", "");
+            return 1;
+        }
+        char hexstr[9];
+        string_init2(msg, "0x", int_to_hex(data1, hexstr));
+        return err_code;
+    }
+*/
+
+    if (opcode == 0U) {
         err_code = 1;
         string_init(msg, "ERR 1: Unrecognized command '");
         string_append(msg, g_line_parts[0].txt, g_line_parts[0].len);

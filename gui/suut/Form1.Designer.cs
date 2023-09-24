@@ -46,6 +46,11 @@
             this.toolTipTrigger = new System.Windows.Forms.ToolTip(this.components);
             this.groupBoxConsole = new System.Windows.Forms.GroupBox();
             this.textBoxConsole = new System.Windows.Forms.TextBox();
+            this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
+            this.textBox4 = new System.Windows.Forms.TextBox();
+            this.comboBoxScript = new System.Windows.Forms.ComboBox();
+            this.buttonOpenScript = new System.Windows.Forms.Button();
+            this.buttonRunScript = new System.Windows.Forms.Button();
             this.groupBoxConnect.SuspendLayout();
             this.groupBoxConsole.SuspendLayout();
             this.SuspendLayout();
@@ -100,10 +105,10 @@
             this.buttonConnect.BackColor = System.Drawing.Color.Gray;
             this.buttonConnect.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttonConnect.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.buttonConnect.Location = new System.Drawing.Point(186, 156);
+            this.buttonConnect.Location = new System.Drawing.Point(186, 144);
             this.buttonConnect.Margin = new System.Windows.Forms.Padding(2);
             this.buttonConnect.Name = "buttonConnect";
-            this.buttonConnect.Size = new System.Drawing.Size(115, 41);
+            this.buttonConnect.Size = new System.Drawing.Size(103, 58);
             this.buttonConnect.TabIndex = 14;
             this.buttonConnect.Text = "CONNECT";
             this.buttonConnect.UseVisualStyleBackColor = false;
@@ -111,6 +116,10 @@
             // 
             // groupBoxConnect
             // 
+            this.groupBoxConnect.Controls.Add(this.buttonRunScript);
+            this.groupBoxConnect.Controls.Add(this.buttonOpenScript);
+            this.groupBoxConnect.Controls.Add(this.comboBoxScript);
+            this.groupBoxConnect.Controls.Add(this.textBox4);
             this.groupBoxConnect.Controls.Add(this.buttonClear);
             this.groupBoxConnect.Controls.Add(this.comboBoxNewLine);
             this.groupBoxConnect.Controls.Add(this.textBox3);
@@ -124,7 +133,7 @@
             this.groupBoxConnect.Margin = new System.Windows.Forms.Padding(2);
             this.groupBoxConnect.Name = "groupBoxConnect";
             this.groupBoxConnect.Padding = new System.Windows.Forms.Padding(2);
-            this.groupBoxConnect.Size = new System.Drawing.Size(363, 300);
+            this.groupBoxConnect.Size = new System.Drawing.Size(363, 805);
             this.groupBoxConnect.TabIndex = 15;
             this.groupBoxConnect.TabStop = false;
             this.groupBoxConnect.Text = "Connect";
@@ -134,7 +143,7 @@
             this.buttonClear.BackColor = System.Drawing.Color.Gray;
             this.buttonClear.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttonClear.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.buttonClear.Location = new System.Drawing.Point(119, 210);
+            this.buttonClear.Location = new System.Drawing.Point(119, 363);
             this.buttonClear.Margin = new System.Windows.Forms.Padding(2);
             this.buttonClear.Name = "buttonClear";
             this.buttonClear.Size = new System.Drawing.Size(115, 73);
@@ -211,12 +220,12 @@
             this.buttonRefresh.BackColor = System.Drawing.Color.Gray;
             this.buttonRefresh.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttonRefresh.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.buttonRefresh.Location = new System.Drawing.Point(47, 156);
+            this.buttonRefresh.Location = new System.Drawing.Point(59, 144);
             this.buttonRefresh.Margin = new System.Windows.Forms.Padding(2);
             this.buttonRefresh.Name = "buttonRefresh";
-            this.buttonRefresh.Size = new System.Drawing.Size(115, 41);
+            this.buttonRefresh.Size = new System.Drawing.Size(103, 58);
             this.buttonRefresh.TabIndex = 15;
-            this.buttonRefresh.Text = "REFRESH";
+            this.buttonRefresh.Text = "REFRESH PORT LIST";
             this.buttonRefresh.UseVisualStyleBackColor = false;
             this.buttonRefresh.Click += new System.EventHandler(this.buttonRefresh_Click);
             // 
@@ -256,6 +265,67 @@
             this.textBoxConsole.Size = new System.Drawing.Size(953, 758);
             this.textBoxConsole.TabIndex = 4;
             // 
+            // openFileDialog1
+            // 
+            this.openFileDialog1.DefaultExt = "txt";
+            this.openFileDialog1.FileName = "openFileDialog1";
+            this.openFileDialog1.Title = "Open Script To Send";
+            this.openFileDialog1.FileOk += new System.ComponentModel.CancelEventHandler(this.openFileDialog1_FileOk);
+            // 
+            // textBox4
+            // 
+            this.textBox4.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.textBox4.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.textBox4.Location = new System.Drawing.Point(18, 232);
+            this.textBox4.Name = "textBox4";
+            this.textBox4.Size = new System.Drawing.Size(68, 24);
+            this.textBox4.TabIndex = 24;
+            this.textBox4.Text = "Script";
+            this.textBox4.TextChanged += new System.EventHandler(this.textBox4_TextChanged);
+            // 
+            // comboBoxScript
+            // 
+            this.comboBoxScript.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.comboBoxScript.FormattingEnabled = true;
+            this.comboBoxScript.Items.AddRange(new object[] {
+            "\\r",
+            "\\n",
+            "\\r\\n"});
+            this.comboBoxScript.Location = new System.Drawing.Point(91, 232);
+            this.comboBoxScript.Margin = new System.Windows.Forms.Padding(2);
+            this.comboBoxScript.Name = "comboBoxScript";
+            this.comboBoxScript.Size = new System.Drawing.Size(254, 25);
+            this.comboBoxScript.TabIndex = 25;
+            this.comboBoxScript.SelectedIndexChanged += new System.EventHandler(this.comboBoxScript_SelectedIndexChanged);
+            // 
+            // buttonOpenScript
+            // 
+            this.buttonOpenScript.BackColor = System.Drawing.Color.Gray;
+            this.buttonOpenScript.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.buttonOpenScript.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
+            this.buttonOpenScript.Location = new System.Drawing.Point(59, 281);
+            this.buttonOpenScript.Margin = new System.Windows.Forms.Padding(2);
+            this.buttonOpenScript.Name = "buttonOpenScript";
+            this.buttonOpenScript.Size = new System.Drawing.Size(103, 50);
+            this.buttonOpenScript.TabIndex = 26;
+            this.buttonOpenScript.Text = "OPEN SCRIPT";
+            this.buttonOpenScript.UseVisualStyleBackColor = false;
+            this.buttonOpenScript.Click += new System.EventHandler(this.buttonOpenScript_Click);
+            // 
+            // buttonRunScript
+            // 
+            this.buttonRunScript.BackColor = System.Drawing.Color.Gray;
+            this.buttonRunScript.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.buttonRunScript.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
+            this.buttonRunScript.Location = new System.Drawing.Point(186, 281);
+            this.buttonRunScript.Margin = new System.Windows.Forms.Padding(2);
+            this.buttonRunScript.Name = "buttonRunScript";
+            this.buttonRunScript.Size = new System.Drawing.Size(103, 50);
+            this.buttonRunScript.TabIndex = 27;
+            this.buttonRunScript.Text = "RUN SCRIPT";
+            this.buttonRunScript.UseVisualStyleBackColor = false;
+            this.buttonRunScript.Click += new System.EventHandler(this.buttonRunScript_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -265,7 +335,7 @@
             this.Controls.Add(this.groupBoxConnect);
             this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "Form1";
-            this.Text = "Suitable USB UART Terminal (SUUT)";
+            this.Text = "SUUT";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.groupBoxConnect.ResumeLayout(false);
             this.groupBoxConnect.PerformLayout();
@@ -297,6 +367,11 @@
         private System.Windows.Forms.TextBox textBox3;
         private System.Windows.Forms.ComboBox comboBoxBaudRate;
         private System.Windows.Forms.Button buttonClear;
+        private System.Windows.Forms.OpenFileDialog openFileDialog1;
+        private System.Windows.Forms.TextBox textBox4;
+        private System.Windows.Forms.ComboBox comboBoxScript;
+        private System.Windows.Forms.Button buttonRunScript;
+        private System.Windows.Forms.Button buttonOpenScript;
     }
 }
 

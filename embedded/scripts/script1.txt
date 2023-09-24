@@ -1,0 +1,18 @@
+a = a
+a = 5
+a = 5 + a
+a = 5 + b
+b = 7
+a = a + b
+a
+b
+peek 5
+peek a
+peek a y
+y
+poke 5 42
+peek a
+poke a b
+peek a
+peek 5
+dumpvars
