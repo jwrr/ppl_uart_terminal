@@ -862,7 +862,7 @@
             this.Controls.Add(this.groupBoxConnect);
             this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "Form1";
-            this.Text = "SUUT";
+            this.Text = "SUUTerminal";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.groupBoxConnect.ResumeLayout(false);
             this.groupBoxConnect.PerformLayout();
