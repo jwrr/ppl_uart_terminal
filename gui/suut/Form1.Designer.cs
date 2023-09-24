@@ -265,7 +265,7 @@
             this.Controls.Add(this.groupBoxConnect);
             this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "Form1";
-            this.Text = "UUT USB UART Terminal";
+            this.Text = "Suitable USB UART Terminal (SUUT)";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.groupBoxConnect.ResumeLayout(false);
             this.groupBoxConnect.PerformLayout();

@@ -7,7 +7,7 @@
     <ProjectGuid>{09873CF1-38F5-4394-97A0-F7C07422DE34}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <RootNamespace>usb_gui</RootNamespace>
-    <AssemblyName>usb-gui</AssemblyName>
+    <AssemblyName>suut</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -52,7 +52,7 @@
     <ManifestCertificateThumbprint>29FB243BF72E8EB4F1EDFE7599FC2A0877C90A18</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>usb-gui_TemporaryKey.pfx</ManifestKeyFile>
+    <ManifestKeyFile>suut_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <GenerateManifests>true</GenerateManifests>
@@ -104,7 +104,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <None Include="usb-gui_TemporaryKey.pfx" />
+    <None Include="suut_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
