@@ -409,7 +409,7 @@ void ppl_reset(ppl_t *ppl_vm)
 }
 
 
-uint32_t ppl_get_data_index(ppl_t *ppl_vm, string_t *name, bool *is_number)
+uint32_t ppl_get_data_mem_offset(ppl_t *ppl_vm, string_t *name, bool *is_number)
 {
     *is_number = name->len > 0U && isdigit(name->txt[0]);
     uint32_t number = 0U;
@@ -463,6 +463,7 @@ uint8_t ppl_get_tag_index(ppl_t *ppl_vm, string_t *tag_name)
 
 uint8_t ppl_append_data(ppl_t *ppl_vm, string_t *data_name)
 {
+    if (data_name->len == 0) return 0;
     if (ppl_vm->data_len == 0) {
         ppl_vm->data_len++; // keep entry 0 empty
     }
@@ -525,7 +526,7 @@ void ppl_dumpvars(ppl_t *ppl_vm)
 
 bool ppl_append_inst(ppl_t *ppl_vm, uint8_t op, uint8_t rta, uint32_t d1, uint32_t d2, bool d1_is_num, bool d2_is_num)
 {
-    bool ok = 1;
+    bool ok = true;
     if (ppl_vm->inst_i == 0) {
         ppl_vm->inst_i = 1;
     }
@@ -543,6 +544,180 @@ bool ppl_append_inst(ppl_t *ppl_vm, uint8_t op, uint8_t rta, uint32_t d1, uint32
 }
 
 
+uint8_t ppl_get_opcode(string_t *cmd_string, string_t *op_string)
+{
+    uint8_t operation = 0U;
+    if (string_in_list(op_string, "==")) {
+        operation = 0x1;
+    } else if (string_in_list(op_string, "<")) {
+        operation = 0x2;
+    } else if (string_in_list(op_string, ">")) {
+        operation = 0x3;
+    } else if (string_in_list(op_string, "<=")) {
+        operation = 0x4;
+    } else if (string_in_list(op_string, ">=")) {
+        operation = 0x5;
+    } else if (string_in_list(op_string, "!=")) {
+        operation = 0x6;
+    } else if (string_in_list(op_string, "+")) {
+        operation = 0x7;
+    } else if (string_in_list(op_string, "-")) {
+        operation = 0x8;
+    } else if (string_in_list(op_string, "*")) {
+        operation = 0x9;
+    } else if (string_in_list(op_string, "/")) {
+        operation = 0xa;
+    } else if (string_in_list(op_string, "&")) {
+        operation = 0xb;
+    } else if (string_in_list(op_string, "|")) {
+        operation = 0xc;
+    } else if (string_in_list(op_string, "%")) {
+        operation = 0xd;
+    } else if (string_in_list(op_string, "<<")) {
+        operation = 0xe;
+    } else if (string_in_list(op_string, ">>")) {
+        operation = 0xf;
+    }
+
+    uint8_t opcode = 0U;
+    if (string_in_list(cmd_string, "=")) {
+        opcode = 0x10 + operation;
+     } else if (string_in_list(cmd_string, "peek")) {
+        opcode = 0x20;
+    } else if (string_in_list(cmd_string, "poke")) {
+        opcode = 0x30;
+    } else if (string_in_list(cmd_string, "while")) {
+        opcode = 0x40 + operation;
+    } else if (string_in_list(cmd_string, "if")) {
+        opcode = 0x50 + operation;
+    } else if (string_in_list(cmd_string, "else")) {
+        opcode = 0x60;
+    } else if (string_in_list(cmd_string, "end")) {
+        opcode = 0x70;
+    }
+    return opcode;
+}
+
+uint8_t ppl_err_check(ppl_t *ppl_vm, string_t tokens[], uint8_t opcode, string_t *msg)
+{
+    uint8_t err_code = 0;
+    if (string_in_list(&tokens[0], "=")) {
+        bool data1_is_number;
+        const uint32_t data1 = ppl_get_data_mem_offset(ppl_vm, &tokens[2], &data1_is_number);
+        const bool data1_is_declared = (data1 != 0U);
+        bool data2_is_number;
+        const uint32_t data2 = ppl_get_data_mem_offset(ppl_vm, &tokens[4], &data2_is_number);
+        const bool data2_is_declared = (data2 != 0U);
+        const bool valid_op = (opcode & 0xF);
+        const bool op_is_on_line = (tokens[3].len > 0);
+        const bool data1_is_on_line = (tokens[2].len > 0);
+        const bool data2_is_on_line = (tokens[4].len > 0);
+
+        if (!data1_is_on_line) {
+            err_code = 1;
+            string_init(msg, "ERR 1.1: Missing value or variable to be assigned\r\n");
+        } else if (!data1_is_number && !data1_is_declared) {
+            err_code = 1;
+            string_init(msg, "ERR 1.2: Undefined variable in expression '");
+            string_append(msg, tokens[2].txt, tokens[2].len);
+            string_append(msg, "'\r\n", 3);
+        } else if (!valid_op && op_is_on_line) {
+            err_code = 1;
+            string_init(msg, "ERR 1.3. Invalid operator '");
+            string_append(msg, tokens[3].txt, tokens[3].len);
+            string_append(msg, "'\r\n", 3);
+        } else if (valid_op && !data2_is_on_line) {
+            err_code = 1;
+            string_init(msg, "ERR 1.4: Missing value or variable after operator\r\n");
+        } else if (valid_op && !data2_is_number && !data2_is_declared) {
+            err_code = 1;
+            string_init(msg, "ERR  1.5: Undefined variable after operator '");
+            string_append(msg, tokens[4].txt, tokens[4].len);
+            string_append(msg, "'\r\n", 3);
+        }
+    } else if (string_in_list(&tokens[0], "peek poke")) {
+        bool data1_is_number;
+        const uint32_t data1 = ppl_get_data_mem_offset(ppl_vm, &tokens[2], &data1_is_number);
+        const bool data1_is_declared = (data1 != 0U);
+        bool data2_is_number;
+        const uint32_t data2 = ppl_get_data_mem_offset(ppl_vm, &tokens[4], &data2_is_number);
+        const bool data2_is_declared = (data2 != 0U);
+        const bool data1_is_on_line = (tokens[2].len > 0);
+        const bool data2_is_on_line = (tokens[4].len > 0);
+        const bool cmd_is_peek = string_in_list(&tokens[0], "peek");
+        const bool cmd_is_poke = string_in_list(&tokens[0], "poke");
+
+        if (!data1_is_on_line) {
+            err_code = 1;
+            string_init2(msg, "ERR 2.1: Missing address\r\n" , "");
+        } else if (!data1_is_number && !data1_is_declared) {
+            err_code = 1;
+            string_init4(msg, "ERR 2.2. Undefined address '", tokens[2].txt, "'\r\n", "");
+        } else if (cmd_is_peek && data2_is_number) {
+            err_code = 1;
+            string_init4(msg, "ERR 2.4. return variable is actually a number '", tokens[4].txt, "'\r\n", "");
+        } else if (cmd_is_poke && !data2_is_on_line) {
+            err_code = 1;
+            string_init2(msg, "ERR 2.3: Missing poke value or variable after address\r\n" , "");
+        } else if (cmd_is_poke && !data2_is_number && !data2_is_declared) {
+            err_code = 1;
+            string_init4(msg, "ERR 2.5. Undefined variable '", tokens[4].txt, "'\r\n", "");
+        }
+    }
+
+    return err_code;
+}
+
+
+void ppl_run_cmd(ppl_t *ppl_vm, uint8_t pc, string_t *msg)
+{
+    if (pc >= ppl_vm->inst_len) return;
+
+    uint8_t  opcode = ppl_vm->inst_mem[pc].opcode;
+    uint8_t  result_tag_addr = ppl_vm->inst_mem[pc].result_tag_addr;
+    uint32_t data1 = ppl_vm->inst_mem[pc].data1;
+    uint32_t data1_is_number = ppl_vm->inst_mem[pc].data1_is_number;
+    uint32_t data2 = ppl_vm->inst_mem[pc].data2;
+    uint32_t data2_is_number = ppl_vm->inst_mem[pc].data2_is_number;
+
+    const uint8_t data_mem_result_offset2 = (result_tag_addr == 0) ?
+            ppl_append_data(ppl_vm, &g_line_parts[1]) : result_tag_addr;
+    const uint32_t x1 = data1_is_number ? data1 : ppl_vm->data_mem[data1].val;
+    const uint32_t x2 = data2_is_number ? data2 : ppl_vm->data_mem[data2].val;
+    const uint8_t op = opcode & 0xF;
+    uint32_t y = ppl_vm->data_mem[data_mem_result_offset2].val;
+    switch (op) {
+    case  0: y = x1; break;
+    case  1: y = (x1 == x2); break;
+    case  2: y = (x1 < x2); break;
+    case  3: y = (x1 > x2); break;
+    case  4: y = (x1 <= x2); break;
+    case  5: y = (x1 >= x2); break;
+    case  6: y = (x1 != x2); break;
+    case  7: y = (x1 + x2); break;
+    case  8: y = (x1 - x2); break;
+    case  9: y = (x1 * x2); break;
+    case 10: y = (x1 / x2); break;
+    case 11: y = (x1 & x2); break;
+    case 12: y = (x1 | x2); break;
+    case 13: y = (x1 % x2); break;
+    case 14: y = (x1 << x2); break;
+    case 15: y = (x1 >> x2); break;
+    default: ;
+    }
+
+    ppl_vm->data_mem[data_mem_result_offset2].val = y;
+    char hexstr[9];
+    string_init2(msg, "0x", int_to_hex(y, hexstr));
+    string_append2(msg, "; # op=0x", int_to_hex(op, hexstr));
+    string_append2(msg, " x1=0x", int_to_hex(x1, hexstr));
+    if (op != 0) {
+        string_append2(msg, ", x2=0x", int_to_hex(x2, hexstr));
+    }
+    string_append2(msg, "\r\n", "");
+}
+
+
 uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *msg)
 {
     uint8_t err_code = 0;
@@ -556,7 +731,6 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *msg)
         string_swap(&g_line_parts[1], &g_line_parts[2]);
     }
 
-
     // v     = a + b
     // =     v a + b (swap)
     // while t i < 9
@@ -566,80 +740,14 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *msg)
     // else  t
     // end   t
 
-    uint8_t operation = 0U;
-    if (string_in_list(&g_line_parts[3], "==")) {
-        operation = 0x1;
-    } else if (string_in_list(&g_line_parts[3], "<")) {
-        operation = 0x2;
-    } else if (string_in_list(&g_line_parts[3], ">")) {
-        operation = 0x3;
-    } else if (string_in_list(&g_line_parts[3], "<=")) {
-        operation = 0x4;
-    } else if (string_in_list(&g_line_parts[3], ">=")) {
-        operation = 0x5;
-    } else if (string_in_list(&g_line_parts[3], "!=")) {
-        operation = 0x6;
-    } else if (string_in_list(&g_line_parts[3], "+")) {
-        operation = 0x7;
-    } else if (string_in_list(&g_line_parts[3], "-")) {
-        operation = 0x8;
-    } else if (string_in_list(&g_line_parts[3], "*")) {
-        operation = 0x9;
-    } else if (string_in_list(&g_line_parts[3], "/")) {
-        operation = 0xa;
-    } else if (string_in_list(&g_line_parts[3], "&")) {
-        operation = 0xb;
-    } else if (string_in_list(&g_line_parts[3], "|")) {
-        operation = 0xc;
-    } else if (string_in_list(&g_line_parts[3], "%")) {
-        operation = 0xd;
-    } else if (string_in_list(&g_line_parts[3], "<<")) {
-        operation = 0xe;
-    } else if (string_in_list(&g_line_parts[3], ">>")) {
-        operation = 0xf;
-    }
-
-    uint8_t opcode = 0U;
-    bool result_is_tag = false;
-    if (string_in_list(&g_line_parts[0], "=")) {
-        opcode = 0x10 + operation;
-     } else if (string_in_list(&g_line_parts[0], "peek")) {
-        opcode = 0x20;
-    } else if (string_in_list(&g_line_parts[0], "poke")) {
-        opcode = 0x30;
-    } else if (string_in_list(&g_line_parts[0], "while")) {
-        opcode = 0x40 + operation;
-        result_is_tag = true;
-    } else if (string_in_list(&g_line_parts[0], "if")) {
-        opcode = 0x50 + operation;
-        result_is_tag = true;
-    } else if (string_in_list(&g_line_parts[0], "else")) {
-        opcode = 0x60;
-        result_is_tag = true;
-    } else if (string_in_list(&g_line_parts[0], "end")) {
-        opcode = 0x70;
-        result_is_tag = true;
-    }
-
-    bool data1_is_number;
-    uint32_t data1 = ppl_get_data_index(ppl_vm, &g_line_parts[2], &data1_is_number);
-
-    bool data2_is_number;
-    uint32_t data2 = ppl_get_data_index(ppl_vm, &g_line_parts[4], &data2_is_number);
-
-    uint8_t result_tag_addr = 0;
-    if (result_is_tag) {
-        result_tag_addr = ppl_get_tag_index(ppl_vm, &g_line_parts[1]);
-    } else {
-        bool result_is_number = false;
-        result_tag_addr = (uint8_t)ppl_get_data_index(ppl_vm, &g_line_parts[1], &result_is_number);
-    }
+    uint8_t opcode = ppl_get_opcode(&g_line_parts[0], &g_line_parts[3]);
 
     string_init(msg, "No errors detected\r\n");
     if (string_in_list(&g_line_parts[0], "dumpvars")) {
         err_code = 1;
         ppl_dumpvars(ppl_vm);
         string_init(msg, "");
+        return 0;
     } else if (opcode == 0U) {
         err_code = 1;
         string_init(msg, "ERR 1: Unrecognized command '");
@@ -649,110 +757,98 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *msg)
     }
 
     if (string_in_list(&g_line_parts[0], "=")) {
-        if (g_line_parts[2].len == 0) {
-            err_code = 1;
-            string_init(msg, "ERR 1.1: Missing value or variable to be assigned\r\n");
-        } else if (data1 == 0 && !data1_is_number) {
-            err_code = 1;
-            string_init(msg, "ERR 1.2: Undefined variable in expression '");
-            string_append(msg, g_line_parts[2].txt, g_line_parts[2].len);
-            string_append(msg, "'\r\n", 3);
-        } else if ((g_line_parts[3].len > 0) && (opcode & 0xF == 0)) {
-            err_code = 1;
-            string_init(msg, "ERR 1.3. Invalid operator '");
-            string_append(msg, g_line_parts[3].txt, g_line_parts[3].len);
-            string_append(msg, "'\r\n", 3);
-        } else if ((opcode & 0xF) && (g_line_parts[4].len == 0)) {
-            err_code = 1;
-            string_init(msg, "ERR 1.4: Missing value or variable after operator\r\n");
-        } else if ((opcode & 0xF) && (data2 == 0U && !data2_is_number)) {
-            err_code = 1;
-            string_init(msg, "ERR  1.5: Undefined variable after operator '");
-            string_append(msg, g_line_parts[4].txt, g_line_parts[4].len);
-            string_append(msg, "'\r\n", 3);
-        } else { // no errors detected
-            if (result_tag_addr == 0) {
-                result_tag_addr = ppl_append_data(ppl_vm, &g_line_parts[1]);
-            }
+        bool data1_is_number;
+        uint32_t data1 = ppl_get_data_mem_offset(ppl_vm, &g_line_parts[2], &data1_is_number);
+        bool data2_is_number;
+        uint32_t data2 = ppl_get_data_mem_offset(ppl_vm, &g_line_parts[4], &data2_is_number);
 
-            ppl_append_inst(ppl_vm, opcode, result_tag_addr, data1, data2, data1_is_number, data2_is_number);
+        bool result_is_number = false;
+        uint8_t data_mem_result_offset = (uint8_t)ppl_get_data_mem_offset(ppl_vm, &g_line_parts[1], &result_is_number);
 
-            uint32_t x1 = data1_is_number ? data1 : ppl_vm->data_mem[data1].val;
-            uint32_t x2 = data2_is_number ? data2 : ppl_vm->data_mem[data2].val;
-            uint8_t op = opcode & 0xF;
-            uint32_t y = ppl_vm->data_mem[result_tag_addr].val;
-            switch (op) {
-            case  0: y = x1; break;
-            case  1: y = (x1 == x2); break;
-            case  2: y = (x1 < x2); break;
-            case  3: y = (x1 > x2); break;
-            case  4: y = (x1 <= x2); break;
-            case  5: y = (x1 >= x2); break;
-            case  6: y = (x1 != x2); break;
-            case  7: y = (x1 + x2); break;
-            case  8: y = (x1 - x2); break;
-            case  9: y = (x1 * x2); break;
-            case 10: y = (x1 / x2); break;
-            case 11: y = (x1 & x2); break;
-            case 12: y = (x1 | x2); break;
-            case 13: y = (x1 % x2); break;
-            case 14: y = (x1 << x2); break;
-            case 15: y = (x1 >> x2); break;
-            default: ;
-            }
+        err_code = ppl_err_check(ppl_vm, g_line_parts, opcode, msg);
+        if (err_code) return err_code;
 
-            ppl_vm->data_mem[result_tag_addr].val = y;
-            char hexstr[9];
-            string_init2(msg, "0x" , "");
-            string_append2(msg, int_to_hex(y, hexstr),  "; # op=0x");
-            string_append2(msg, int_to_hex(op, hexstr), ", x1=0x");
-            string_append2(msg, int_to_hex(x1, hexstr), ", x2=0x");
-            string_append2(msg, int_to_hex(x2, hexstr), "\r\n");
+        const uint8_t data_mem_result_offset2 = (data_mem_result_offset == 0) ?
+                ppl_append_data(ppl_vm, &g_line_parts[1]) : data_mem_result_offset;
+        ppl_append_inst(ppl_vm, opcode, data_mem_result_offset2, data1, data2, data1_is_number, data2_is_number);
+        // ppl_run_cmd(ppl_vm, ppl_vm->inst_len-1, msg);
+
+        const uint32_t x1 = data1_is_number ? data1 : ppl_vm->data_mem[data1].val;
+        const uint32_t x2 = data2_is_number ? data2 : ppl_vm->data_mem[data2].val;
+        const uint8_t op = opcode & 0xF;
+        uint32_t y = ppl_vm->data_mem[data_mem_result_offset2].val;
+        switch (op) {
+        case  0: y = x1; break;
+        case  1: y = (x1 == x2); break;
+        case  2: y = (x1 < x2); break;
+        case  3: y = (x1 > x2); break;
+        case  4: y = (x1 <= x2); break;
+        case  5: y = (x1 >= x2); break;
+        case  6: y = (x1 != x2); break;
+        case  7: y = (x1 + x2); break;
+        case  8: y = (x1 - x2); break;
+        case  9: y = (x1 * x2); break;
+        case 10: y = (x1 / x2); break;
+        case 11: y = (x1 & x2); break;
+        case 12: y = (x1 | x2); break;
+        case 13: y = (x1 % x2); break;
+        case 14: y = (x1 << x2); break;
+        case 15: y = (x1 >> x2); break;
+        default: ;
         }
-    } else if (string_in_list(&g_line_parts[0], "peek poke")) {
-        if (g_line_parts[2].len == 0) {
-            err_code = 1;
-            string_init2(msg, "ERR 2.1: Missing address\r\n" , "");
-        } else if ((data1 == 0) && !data1_is_number) {
-            err_code = 1;
-            string_init4(msg, "ERR 2.2. Undefined address '", g_line_parts[2].txt, "'\r\n", "");
-        } else if (string_in_list(&g_line_parts[0], "poke") && (g_line_parts[4].len == 0)) {
-            err_code = 1;
-            string_init2(msg, "ERR 2.3: Missing poke value or variable after address\r\n" , "");
-        } else if (string_in_list(&g_line_parts[0], "peek") && data2_is_number) {
-            err_code = 1;
-            string_init4(msg, "ERR 2.4. return variable is actually a number '", g_line_parts[4].txt, "'\r\n", "");
-        } else if (string_in_list(&g_line_parts[0], "poke") && data2 == 0 && !data2_is_number) {
-            err_code = 1;
-            string_init4(msg, "ERR 2.5. Undefined variable '", g_line_parts[4].txt, "'\r\n", "");
-        } else { // peek poke no errors detected
-            ppl_append_inst(ppl_vm, opcode, result_tag_addr, data1, data2, data1_is_number, data2_is_number);
 
-            uint32_t x1 = data1_is_number ? data1 : ppl_vm->data_mem[data1].val;
-            uint32_t x2 = data2_is_number ? data2 : ppl_vm->data_mem[data2].val;
-            if (string_in_list(&g_line_parts[0], "peek")) {
-                uint64_t val = fabric_base_addr[x1];
-                bool dest_location_is_defined = g_line_parts[4].len > 0;
-                char hexstr[9];
-                if (dest_location_is_defined) {
-                    ppl_vm->data_mem[data2].val = (uint32_t)val;
-                    int_to_hex(ppl_vm->data_mem[data1].val, hexstr);
-                } else {
-                    int_to_hex((uint32_t)val, hexstr);
-                }
-                string_init2(msg, "0x", hexstr);
-                int_to_hex(x1, hexstr);
-                string_append4(msg, "; # peek[0x", hexstr, "]", "\r\n");
-            } else { // poke
-                fabric_base_addr[x1] = (uint64_t)x2;
-                char hexstr[9];
-                int_to_hex(x2, hexstr);
-                string_init2(msg, "0x", hexstr);
-                int_to_hex(x1, hexstr);
-                string_append4(msg, "; # poke [0x", hexstr, "]", "\r\n");
-            }
+        ppl_vm->data_mem[data_mem_result_offset2].val = y;
+        char hexstr[9];
+        string_init2(msg, "0x", int_to_hex(y, hexstr));
+        string_append2(msg, "; # op=0x", int_to_hex(op, hexstr));
+        string_append2(msg, " x1=0x", int_to_hex(x1, hexstr));
+        if (op != 0) {
+            string_append2(msg, ", x2=0x", int_to_hex(x2, hexstr));
+        }
+        string_append2(msg, "\r\n", "");
+
+    } else if (string_in_list(&g_line_parts[0], "peek poke")) {
+        bool data1_is_number;
+        uint32_t data1 = ppl_get_data_mem_offset(ppl_vm, &g_line_parts[2], &data1_is_number);
+        bool data2_is_number;
+        uint32_t data2 = ppl_get_data_mem_offset(ppl_vm, &g_line_parts[4], &data2_is_number);
+
+        bool result_is_number = false;
+        uint8_t dest_mem_result_offset = (uint8_t)ppl_get_data_mem_offset(ppl_vm, &g_line_parts[1], &result_is_number);
+
+        err_code = ppl_err_check(ppl_vm, g_line_parts, opcode, msg);
+        if (err_code) return err_code;
+
+        if (string_in_list(&g_line_parts[0], "peek")) {
+            ppl_append_inst(ppl_vm, opcode, dest_mem_result_offset, data1, data2, data1_is_number, data2_is_number);
+
+            const uint32_t fabric_offset = data1_is_number ? data1 : ppl_vm->data_mem[data1].val;
+            const uint32_t val_from_fabric = (uint32_t)fabric_base_addr[fabric_offset];
+            const uint8_t dest_mem_offset = data2_is_number ? 0 : (uint8_t)data2;
+            const bool dest_is_declared = dest_mem_offset != 0;
+            const bool create_new_variable = (!data2_is_number && !dest_is_declared);
+            const uint32_t dest_mem_offset2 = create_new_variable ?
+                    ppl_append_data(ppl_vm, &g_line_parts[4]) : dest_mem_offset;
+            ppl_vm->data_mem[dest_mem_offset2].val = val_from_fabric;
+            const uint32_t val_from_data_mem = ppl_vm->data_mem[dest_mem_offset2].val;
+            char hexstr[9];
+            string_init2(msg, "0x", int_to_hex(val_from_data_mem, hexstr));
+            string_append4(msg, "; # peek[0x", int_to_hex(fabric_offset, hexstr), "]", "\r\n");
+         } else if (string_in_list(&g_line_parts[0], "poke")) {
+            ppl_append_inst(ppl_vm, opcode, dest_mem_result_offset, data1, data2, data1_is_number, data2_is_number);
+            const uint32_t fabric_offset = data1_is_number ? data1 : ppl_vm->data_mem[data1].val;
+            const uint32_t val_to_fabric = data2_is_number ? data2 : ppl_vm->data_mem[data2].val;
+            fabric_base_addr[fabric_offset] = (uint64_t)val_to_fabric;
+            char hexstr[9];
+            string_init2(msg, "0x", int_to_hex(val_to_fabric, hexstr));
+            string_append4(msg, "; # poke [0x", int_to_hex(fabric_offset, hexstr), "]", "\r\n");
         }
     } else if (string_in_list(&g_line_parts[0], "while if")) {
+        bool data1_is_number;
+        uint32_t data1 = ppl_get_data_mem_offset(ppl_vm, &g_line_parts[2], &data1_is_number);
+        bool data2_is_number;
+        uint32_t data2 = ppl_get_data_mem_offset(ppl_vm, &g_line_parts[4], &data2_is_number);
+        uint8_t result_tag_addr = 0;
         if (g_line_parts[2].len == 0) {
             err_code = 2;
             string_init(msg, "ERR 2: Missing data 1 value or variable\r\n");
@@ -777,6 +873,11 @@ uint8_t ppl_compile_line(ppl_t *ppl_vm, string_t *line, string_t *msg)
             }
         }
     } else if (string_in_list(&g_line_parts[0], "else end")) {
+        bool data1_is_number;
+        uint32_t data1 = ppl_get_data_mem_offset(ppl_vm, &g_line_parts[2], &data1_is_number);
+        bool data2_is_number;
+        uint32_t data2 = ppl_get_data_mem_offset(ppl_vm, &g_line_parts[4], &data2_is_number);
+        uint8_t result_tag_addr = 0;
         if (g_line_parts[1].len == 0) {
             err_code = 11;
             string_init(msg, "ERR 11: Missing tag\r\n");
@@ -855,10 +956,6 @@ void u54_1(void) {
     uint64_t mcycle_end = 0U;
     uint64_t delta_mcycle = 0U;
     uint64_t hartid = read_csr(mhartid);
-
-
-
-
 
     string_init(&g_line, "");
 

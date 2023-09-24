@@ -35,6 +35,7 @@
             this.serialPort1 = new System.IO.Ports.SerialPort(this.components);
             this.buttonConnect = new System.Windows.Forms.Button();
             this.groupBoxConnect = new System.Windows.Forms.GroupBox();
+            this.buttonClear = new System.Windows.Forms.Button();
             this.comboBoxNewLine = new System.Windows.Forms.ComboBox();
             this.textBox3 = new System.Windows.Forms.TextBox();
             this.comboBoxBaudRate = new System.Windows.Forms.ComboBox();
@@ -45,7 +46,6 @@
             this.toolTipTrigger = new System.Windows.Forms.ToolTip(this.components);
             this.groupBoxConsole = new System.Windows.Forms.GroupBox();
             this.textBoxConsole = new System.Windows.Forms.TextBox();
-            this.buttonClear = new System.Windows.Forms.Button();
             this.groupBoxConnect.SuspendLayout();
             this.groupBoxConsole.SuspendLayout();
             this.SuspendLayout();
@@ -120,14 +120,28 @@
             this.groupBoxConnect.Controls.Add(this.buttonRefresh);
             this.groupBoxConnect.Controls.Add(this.comboBoxAvailablePorts);
             this.groupBoxConnect.Controls.Add(this.buttonConnect);
-            this.groupBoxConnect.Location = new System.Drawing.Point(4, 15);
+            this.groupBoxConnect.Location = new System.Drawing.Point(4, 2);
             this.groupBoxConnect.Margin = new System.Windows.Forms.Padding(2);
             this.groupBoxConnect.Name = "groupBoxConnect";
             this.groupBoxConnect.Padding = new System.Windows.Forms.Padding(2);
-            this.groupBoxConnect.Size = new System.Drawing.Size(363, 287);
+            this.groupBoxConnect.Size = new System.Drawing.Size(363, 300);
             this.groupBoxConnect.TabIndex = 15;
             this.groupBoxConnect.TabStop = false;
             this.groupBoxConnect.Text = "Connect";
+            // 
+            // buttonClear
+            // 
+            this.buttonClear.BackColor = System.Drawing.Color.Gray;
+            this.buttonClear.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.buttonClear.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
+            this.buttonClear.Location = new System.Drawing.Point(119, 210);
+            this.buttonClear.Margin = new System.Windows.Forms.Padding(2);
+            this.buttonClear.Name = "buttonClear";
+            this.buttonClear.Size = new System.Drawing.Size(115, 73);
+            this.buttonClear.TabIndex = 23;
+            this.buttonClear.Text = "CLEAR CONSOLE";
+            this.buttonClear.UseVisualStyleBackColor = false;
+            this.buttonClear.Click += new System.EventHandler(this.buttonClear_Click);
             // 
             // comboBoxNewLine
             // 
@@ -242,20 +256,6 @@
             this.textBoxConsole.Size = new System.Drawing.Size(953, 758);
             this.textBoxConsole.TabIndex = 4;
             // 
-            // buttonClear
-            // 
-            this.buttonClear.BackColor = System.Drawing.Color.Gray;
-            this.buttonClear.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.buttonClear.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.buttonClear.Location = new System.Drawing.Point(119, 210);
-            this.buttonClear.Margin = new System.Windows.Forms.Padding(2);
-            this.buttonClear.Name = "buttonClear";
-            this.buttonClear.Size = new System.Drawing.Size(115, 73);
-            this.buttonClear.TabIndex = 23;
-            this.buttonClear.Text = "CLEAR CONSOLE";
-            this.buttonClear.UseVisualStyleBackColor = false;
-            this.buttonClear.Click += new System.EventHandler(this.buttonClear_Click);
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -265,7 +265,7 @@
             this.Controls.Add(this.groupBoxConnect);
             this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "Form1";
-            this.Text = "MPSG";
+            this.Text = "UUT USB UART Terminal";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.groupBoxConnect.ResumeLayout(false);
             this.groupBoxConnect.PerformLayout();

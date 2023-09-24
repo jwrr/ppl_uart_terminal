@@ -187,6 +187,8 @@ namespace usb_gui
             textBoxConsole.Invoke((MethodInvoker)delegate
             {
                 textBoxConsole.Text += rxStr;
+                textBoxConsole.SelectionStart = textBoxConsole.Text.Length;
+                textBoxConsole.ScrollToCaret();
             });
         }
 
