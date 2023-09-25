@@ -11,13 +11,11 @@ SUUTerminal, which is a pretty barebones terminal emulator that can send file
 contents to the remote device. It doesn't do much more than that, but it's 
 sufficient for my needs. Hence the name, Sufficient USB UART Terminal.
 
-You can run SUUTerminal from Visual Studio with the following instructions. I
-use Microsoft Visual Studio Community 2022 (64-bit), but I didn't do anything
+You can run SUUTerminal from Visual Studio with the following steps. I use
+Microsoft Visual Studio Community 2022 (64-bit), but I didn't do anything
 clever, so it should be portable to other versions. I would like to evenually 
 try it on Linux with Mono.
 
-To run the GUI start Visual Studio 
-(It has been tested using ).
 * Click "Open a project or solution"
 * open  suuterminal.sln
 * Click "Start". This will compile and run the GUI.
@@ -46,8 +44,21 @@ SUUTerminal isn't too configurable with just a few settings.
 End of Line Characters
 ----------------------
 When receiving data, SUUTerminal converts several end-of-line/new-line variations,
-including `LF`, `CR` and `CR+LF` to `Environment.NewLine`, which is CR+LF (\r\n) on Windows and LF (\n) on
-Linux.
+including `LF`, `CR` and `CR+LF` to `Environment.NewLine`, which is CR+LF (\r\n)
+on Windows and LF (\n) on Linux.
+
+Running Scripts
+---------------
+
+To send the contents of a script file to the remote device, press `Open File`,
+navigate to the file, and press `Run Script`. SUUTerminal waits 100 milliseconds
+after each line is sent.
+
+Running Snippets
+----------------
+Type a sequence of commands into the `Snippet` textbox and press `Run Snippet`.
+You can press `Load Snippet`  to initialize the snippet textbox with the
+file selected with `Open File`. 
 
 Hacking
 -------
@@ -73,3 +84,7 @@ Hacking
 * **Change default Newline** - Open `Form1.cs [Design]`, right-click on the
   Newline textbox and pick `properties` and change the `text` property to your
   prefered newline character(s).
+  
+ * **Change delay after each line of script** - Edit `Form1.cs`, search for
+   function `sendCommandLine` and replace sleep(100) with your delay in
+   milliseconds. This also changes the delay between each line of a snippet.
