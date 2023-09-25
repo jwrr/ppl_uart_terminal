@@ -16,20 +16,23 @@ Microsoft Visual Studio Community 2022 (64-bit), but I didn't do anything
 clever, so it should be portable to other versions. I would like to evenually 
 try it on Linux with Mono.
 
-* Click "Open a project or solution"
-* open  suuterminal.sln
-* Click "Start". This will compile and run the GUI.
-* In the GUI's configuration pane, select the appropriate Port, Baud Rate and
-  Newline sequence.
-* Enter lines to send to the remote device using the Send Dialog box, and
-  monitor the responses with the Console read-only box. Or try the file and
-  snippet scratchpad features.
+* Use the Windows File Explorer (the folder icon) to navigate to the project's
+  `gui` folder, and double-click on `suuterminal.sln`. This should open Visual
+  Studio.
+* Click "Start" green-triangle icon to build and run SUUTerminal.
+* In SUUTerminal's configuration panel, select the appropriate Port, Baud Rate
+  and Newline sequence.
+* Press the `Connect to Port1` button. 
+* In the Send Dialog Box at the bottom of the screen, enter lines to send to
+  the remote device, and monitor the responses with the Console read-only box.
+  You can also try the send file file and snippet scratchpad features... which
+  is the reason SUUTerminal exists.
 
 ![SUUTerminal screenshot](screenshot.png)
 
 Configuration
 -------------
-SUUTerminal isn't too configurable with just a few settings.
+SUUTerminal isn't too configurable and has just a few settings.
 
 * Port - The program scans for open ports and presents a drop-down selection
   menu. If there are multiple ports, a simple way to identify your port is to
@@ -44,8 +47,8 @@ SUUTerminal isn't too configurable with just a few settings.
 End of Line Characters
 ----------------------
 When receiving data, SUUTerminal converts several end-of-line/new-line variations,
-including `LF`, `CR` and `CR+LF` to `Environment.NewLine`, which is CR+LF (\r\n)
-on Windows and LF (\n) on Linux.
+including `LF`, `CR` and `CR+LF` to `Environment.NewLine`, which is `CR+LF` (\r\n)
+on Windows and `LF` (\n) on Linux.
 
 Running Scripts
 ---------------
