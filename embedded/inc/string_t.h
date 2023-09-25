@@ -2,8 +2,8 @@
  * string_t.h
  */
 
-#ifndef SRC_APPLICATION_INC_STRING_T_H_
-#define SRC_APPLICATION_INC_STRING_T_H_
+#ifndef STRING_T_H_
+#define STRING_T_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,5 +36,4 @@ void string_swap(string_t *s1, string_t *s2);
 char * int_to_hex(uint32_t val, char str[]);
 void string_print(string_t *str);
 
-
-#endif /* SRC_APPLICATION_INC_STRING_T_H_ */
+#endif /* STRING_T_H_ */

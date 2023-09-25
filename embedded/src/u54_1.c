@@ -50,7 +50,7 @@ volatile uint32_t count_sw_ints_h1 = 0U;
 volatile uint8_t g_rx_size = 0U;
 static volatile uint32_t irq_cnt = 0;
 
-ppl_t   g_ppl_vm;
+pptl_t   g_pptl_vm;
 string_t g_line;
 string_t g_msg;
 
@@ -191,7 +191,7 @@ void u54_1(void) {
     while (1u) {
         if (g_line_ready) {
             g_line_ready = false;
-            uint8_t err_code = ppl_compile_line(&g_ppl_vm, &g_line, &g_msg);
+            uint8_t err_code = pptl_compile_line(&g_pptl_vm, &g_line, &g_msg);
             string_init(&g_line, "");
             if (g_msg.len > 0U) {
                 string_print(&g_msg);
