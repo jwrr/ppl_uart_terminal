@@ -413,23 +413,9 @@ uint8_t pptl_err_check(pptl_t *pptl_vm, string_t tokens[], uint8_t opcode, strin
 }
 
 
-void pptl_run_cmd(pptl_t *pptl_vm, uint8_t pc, string_t *msg)
+uint32_t pptl_run_opcode(pptl_t *pptl_vm, uint8_t op, uint32_t x1, uint32_t x2)
 {
-    if (pc >= pptl_vm->inst_len) return;
-
-    uint8_t  opcode = pptl_vm->inst_mem[pc].opcode;
-    uint8_t  result_tag_addr = pptl_vm->inst_mem[pc].result_tag_addr;
-    uint32_t data1 = pptl_vm->inst_mem[pc].data1;
-    uint32_t data1_is_number = pptl_vm->inst_mem[pc].data1_is_number;
-    uint32_t data2 = pptl_vm->inst_mem[pc].data2;
-    uint32_t data2_is_number = pptl_vm->inst_mem[pc].data2_is_number;
-
-    const uint8_t data_mem_result_offset2 = (result_tag_addr == 0) ?
-            pptl_append_data(pptl_vm, &g_line_parts[1]) : result_tag_addr;
-    const uint32_t x1 = data1_is_number ? data1 : pptl_vm->data_mem[data1].val;
-    const uint32_t x2 = data2_is_number ? data2 : pptl_vm->data_mem[data2].val;
-    const uint8_t op = opcode & 0xF;
-    uint32_t y = pptl_vm->data_mem[data_mem_result_offset2].val;
+    uint32_t y = 0;
     switch (op) {
     case  0: y = x1; break;
     case  1: y = (x1 == x2); break;
@@ -447,18 +433,9 @@ void pptl_run_cmd(pptl_t *pptl_vm, uint8_t pc, string_t *msg)
     case 13: y = (x1 % x2); break;
     case 14: y = (x1 << x2); break;
     case 15: y = (x1 >> x2); break;
-    default: ;
+    default: y = x1;
     }
-
-    pptl_vm->data_mem[data_mem_result_offset2].val = y;
-    char hexstr[9];
-    string_init2(msg, "0x", int_to_hex(y, hexstr));
-    string_append2(msg, "; # op=0x", int_to_hex(op, hexstr));
-    string_append2(msg, " x1=0x", int_to_hex(x1, hexstr));
-    if (op != 0) {
-        string_append2(msg, ", x2=0x", int_to_hex(x2, hexstr));
-    }
-    string_append2(msg, "\r\n", "");
+    return y;
 }
 
 
@@ -551,27 +528,7 @@ uint8_t pptl_compile_line(pptl_t *pptl_vm, string_t *line, string_t *msg)
         const uint32_t x1 = data1_is_number ? data1 : pptl_vm->data_mem[data1].val;
         const uint32_t x2 = data2_is_number ? data2 : pptl_vm->data_mem[data2].val;
         const uint8_t op = opcode & 0xF;
-        uint32_t y = pptl_vm->data_mem[data_mem_result_offset2].val;
-        switch (op) {
-        case  0: y = x1; break;
-        case  1: y = (x1 == x2); break;
-        case  2: y = (x1 < x2); break;
-        case  3: y = (x1 > x2); break;
-        case  4: y = (x1 <= x2); break;
-        case  5: y = (x1 >= x2); break;
-        case  6: y = (x1 != x2); break;
-        case  7: y = (x1 + x2); break;
-        case  8: y = (x1 - x2); break;
-        case  9: y = (x1 * x2); break;
-        case 10: y = (x1 / x2); break;
-        case 11: y = (x1 & x2); break;
-        case 12: y = (x1 | x2); break;
-        case 13: y = (x1 % x2); break;
-        case 14: y = (x1 << x2); break;
-        case 15: y = (x1 >> x2); break;
-        default: ;
-        }
-
+        uint32_t y = pptl_run_opcode(pptl_vm, op, x1, x2);
         pptl_vm->data_mem[data_mem_result_offset2].val = y;
         char hexstr[9];
         string_init2(msg, "0x", int_to_hex(y, hexstr));
@@ -630,7 +587,9 @@ uint8_t pptl_compile_line(pptl_t *pptl_vm, string_t *line, string_t *msg)
         const uint32_t fabric_offset = data1_is_number ? data1 : pptl_vm->data_mem[data1].val;
         const uint32_t val_from_fabric = (uint32_t)fabric_base_addr[fabric_offset];
         const uint32_t expect_val = data2_is_number ? data2 : pptl_vm->data_mem[data2].val;
-        const bool fail = val_from_fabric != expect_val;
+        const uint8_t op = (opcode & 0xF);
+        uint32_t y = pptl_run_opcode(pptl_vm, op, val_from_fabric, expect_val);
+        const bool fail = (y == 0); // val_from_fabric != expect_val;
         if (fail) {
             pptl_vm->test_count++;
             pptl_vm->test_fail++;

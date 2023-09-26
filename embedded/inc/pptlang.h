@@ -54,7 +54,6 @@ void pptl_dumpvars(pptl_t *ppl_vm);
 bool pptl_append_inst(pptl_t *ppl_vm, uint8_t op, uint8_t rta, uint32_t d1, uint32_t d2, bool d1_is_num, bool d2_is_num);
 uint8_t pptl_get_opcode(string_t *cmd_string, string_t *op_string);
 uint8_t pptl_err_check(pptl_t *ppl_vm, string_t tokens[], uint8_t opcode, string_t *msg);
-void pptl_run_cmd(pptl_t *ppl_vm, uint8_t pc, string_t *msg);
 uint8_t pptl_compile_line(pptl_t *ppl_vm, string_t *line, string_t *msg);
 
 #endif /* PPTLANG_H_ */
