@@ -16,3 +16,21 @@ poke a b
 peek a
 peek 5
 dumpvars
+begin
+test a = 42
+test a < 42
+test a > 42
+test a == 42
+test a <= 42
+test a >= 42
+finish
+begin
+test a = 42
+test a < 42
+test a > 42
+test a == 42
+test a <= 42
+test a >= 42
+finish
+
+

@@ -14,6 +14,8 @@
 
 uint64_t * const fabric_base_addr = (uint64_t *)0x61000000U;
 
+#define PPTL_STRLEN 100
+uint8_t pptl_tmp_str[PPTL_STRLEN+1];
 
 //#define INFOLEN 138U
 //uint8_t g_print_line[INFOLEN];
@@ -120,6 +122,9 @@ void pptl_reset(pptl_t *pptl_vm)
     pptl_vm->inst_len = 0;
     pptl_vm->data_len = 0;
     pptl_vm->tag_len = 0;
+    pptl_vm->test_count = 0;
+    pptl_vm->test_fail = 0;
+    pptl_vm->unused_tag_i = 0;
 }
 
 
@@ -438,15 +443,60 @@ uint32_t pptl_run_opcode(pptl_t *pptl_vm, uint8_t op, uint32_t x1, uint32_t x2)
     return y;
 }
 
+uint8_t *pptl_opcode_to_string(uint8_t op, string_t *str)
+{
+    switch (op) {
+    case  0: string_init(str, " ?  "); break;
+    case  1: string_init(str, " == "); break;
+    case  2: string_init(str, " < "); break;
+    case  3: string_init(str, " > "); break;
+    case  4: string_init(str, " = "); break;
+    case  5: string_init(str, " >= "); break;
+    case  6: string_init(str, " != "); break;
+    case  7: string_init(str, " + "); break;
+    case  8: string_init(str, " - "); break;
+    case  9: string_init(str, " * "); break;
+    case 10: string_init(str, " / "); break;
+    case 11: string_init(str, " & "); break;
+    case 12: string_init(str, " | "); break;
+    case 13: string_init(str, " % "); break;
+    case 14: string_init(str, " < "); break;
+    case 15: string_init(str, " > "); break;
+    default: string_init(str, "");
+    }
+    return str->txt;
+}
+
 
 uint8_t pptl_compile_line(pptl_t *pptl_vm, string_t *line, string_t *msg)
 {
     uint8_t err_code = 0;
     const uint8_t num_words = string_get_words(line, g_line_parts, PPLT_NUM_LINE_PARTS);
 
+    if (string_in_list(&g_line_parts[0], "dumpvars")) {
+        pptl_dumpvars(pptl_vm);
+        string_init(msg, "");
+        return 0;
+    } else if (string_in_list(&g_line_parts[0], "begin")) {
+        pptl_reset(pptl_vm);
+        string_init(msg, "START OF TEST\r\n");
+        return 0;
+     } else if (string_in_list(&g_line_parts[0], "finish")) {
+        if (pptl_vm->test_fail == 0U) {
+            snprintf(pptl_tmp_str, PPTL_STRLEN, "TEST PASS: all %d tests passed.\r\n",
+                    pptl_vm->test_count);
+            string_init(msg, pptl_tmp_str);
+        } else {
+            snprintf(pptl_tmp_str, PPTL_STRLEN, "TEST FAILED: %d of %d tests failed.\r\n",
+                    pptl_vm->test_fail, pptl_vm->test_count);
+            string_init(msg, pptl_tmp_str);
+        }
+        return 0;
+    }
+
+
     const bool just_print_variable = (g_line_parts[0].len > 0) &&
-            (g_line_parts[1].len == 0) &&
-            !string_in_list(&g_line_parts[0], "dumpvars");
+            (g_line_parts[1].len == 0);
     if (just_print_variable) {
         // Change from: a to: a = a
         string_copy(&g_line_parts[1], &g_line_parts[0]);
@@ -477,11 +527,6 @@ uint8_t pptl_compile_line(pptl_t *pptl_vm, string_t *line, string_t *msg)
     uint8_t opcode = pptl_get_opcode(&g_line_parts[0], &g_line_parts[3]);
 
     string_init(msg, "No errors detected\r\n");
-    if (string_in_list(&g_line_parts[0], "dumpvars")) {
-        pptl_dumpvars(pptl_vm);
-        string_init(msg, "");
-        return 0;
-    }
 
     /*
     const bool just_print_the_value = (num_words == 1);
@@ -590,9 +635,9 @@ uint8_t pptl_compile_line(pptl_t *pptl_vm, string_t *line, string_t *msg)
         const uint8_t op = (opcode & 0xF);
         uint32_t y = pptl_run_opcode(pptl_vm, op, val_from_fabric, expect_val);
         const bool fail = (y == 0); // val_from_fabric != expect_val;
+        pptl_vm->test_count += 1;
         if (fail) {
-            pptl_vm->test_count++;
-            pptl_vm->test_fail++;
+            pptl_vm->test_fail += 1;
         }
 
         char hexstr[9];
@@ -601,7 +646,9 @@ uint8_t pptl_compile_line(pptl_t *pptl_vm, string_t *line, string_t *msg)
         } else {
             string_init(msg, "pass: 0x");
         }
-        string_append4(msg, int_to_hex(val_from_fabric, hexstr), " op ", int_to_hex(expect_val, hexstr),"\r\n");
+        string_t str;
+        pptl_opcode_to_string(op, &str);
+        string_append4(msg, int_to_hex(val_from_fabric, hexstr), str.txt, int_to_hex(expect_val, hexstr),"\r\n");
 
     } else if (string_in_list(&g_line_parts[0], "while if")) {
         bool data1_is_number;
