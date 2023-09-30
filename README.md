@@ -1,6 +1,6 @@
 # SUUTerminal
 
-Sufficient USB UART TERMINAL GUI SOFTWARE
+Serial USB UART TERMINAL GUI SOFTWARE
 -----------------------------------------
 
 SUUTerminal is written in C# using WinForms. It provides a USB UART serial
@@ -9,7 +9,7 @@ and recommend it. But it doesn't support transmitting files, which is what
 I need to script and automate test plans and command sequences. So I wrote
 SUUTerminal, which is a pretty barebones terminal emulator that can send file
 contents to the remote device. It doesn't do much more than that, but it's 
-sufficient for my needs. Hence the name, Sufficient USB UART Terminal.
+sufficient for my needs.
 
 You can run SUUTerminal from Visual Studio with the following steps. I use
 Microsoft Visual Studio Community 2022 (64-bit), but I didn't do anything
